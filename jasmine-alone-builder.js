@@ -140,11 +140,15 @@ THE SOFTWARE.
 	
 			var i;
 			this._files = listDir(this._basePath, '.js');
+			this._cssFiles = listDir(this._basePath, '.css');
 			this._baseRJSId = '/__jasmine-alone__/';
 	
 			this._writeHead();
 			for(i = 0; i < this._files.length; i++){
 				this._writeFile(this._files[i]);
+			}
+			for(i = 0; i < this._cssFiles.length; i++){
+				this._writeCSSFile(this._cssFiles[i]);
 			}
 			this._writeMainFile();
 			this._writeFoot();
@@ -169,6 +173,25 @@ THE SOFTWARE.
 				fContent = fContent.replace('define([', 'define(\'' + rId + '\', [');
 				fContent = this._fixFcontent(fContent, file);
 				this._writer.write(fContent);
+			}
+		},
+		
+		_writeCSSFile: function(file){
+			var baseName = path.basename(file);
+			if(baseName !== this._baseFile){
+				var fContent = fs.readFileSync(file, {encoding: 'utf8'}),
+					css
+				;
+				
+				css =	"!(function(){\n"+
+						"\tvar s = document.createElement('style');\n" +
+						"\ts.setAttribute('type', 'text/css');\n" +
+						"\ts.innerHTML = " + JSON.stringify(fContent) + ";\n" +
+						"\tdocument.head.appendChild(s);\n"+
+						"}());\n"
+				;
+				css = this._fixFcontent(css, file);
+				this._writer.write(css);
 			}
 		},
 		_writeMainFile: function(){
