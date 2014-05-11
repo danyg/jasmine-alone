@@ -23,7 +23,7 @@ define([], function(){
 		getURLForSpec: function(specFile){
 			var l = window.location;
 			return l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + l.pathname + 
-				'?specFile=' + specFile
+				'?specFile=' + encodeURIComponent(specFile)
 			;
 		},
 		

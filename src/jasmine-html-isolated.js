@@ -426,6 +426,7 @@ define([], function() {
 		this.summary = this.createDom('div', {className: 'specSummary'},
 		this.createDom('a', {
 			className: 'description',
+			target: '_blank',
 			href: HtmlReporter.specLink(this.spec),
 			title: this.spec.getFullName()
 		}, this.spec.description)
@@ -434,6 +435,7 @@ define([], function() {
 		this.detail = this.createDom('div', {className: 'specDetail'},
 		this.createDom('a', {
 			className: 'description',
+			target: '_blank',
 			href: '?spec=' + encodeURIComponent(this.spec.getFullName()) + (!!this.spec.getSpecFile ? '&specFile=' + encodeURIComponent(this.spec.getSpecFile()) : ''),
 			title: this.spec.getFullName()
 		}, this.spec.getFullName())
@@ -502,6 +504,7 @@ define([], function() {
 		this.element = this.createDom('div', {className: 'suite'},
 		this.createDom('a', {
 			className: 'description', 
+			target: '_blank',
 			href: HtmlReporter.sectionLink(this.suite.getFullName()) + (!!this.suite.getSpecFile ? '&specFile=' + encodeURIComponent(this.suite.getSpecFile()) : '')
 		}, this.suite.description)
 				);
@@ -581,9 +584,14 @@ define([], function() {
 		for (var i = 0; i < suites.length; i++) {
 			var suite = suites[i];
 			var suiteDiv = this.createDom('div', {className: 'suite'},
-			this.createDom('a', {className: 'run_spec', href: '?spec=' + encodeURIComponent(suite.getFullName())}, "run"),
+			this.createDom('a', {
+				className: 'run_spec', 
+				target: '_blank',
+				href: '?spec=' + encodeURIComponent(suite.getFullName()) + (!!suite.getSpecFile ? '&specFile=' + encodeURIComponent(suite.getSpecFile()) : '')
+			}, "run"),
 					this.createDom('a', {
 						className: 'description', 
+						target: '_blank',
 						href: '?spec=' + encodeURIComponent(suite.getFullName()) + (!!suite.getSpecFile ? '&specFile=' + encodeURIComponent(suite.getSpecFile()) : '')
 					}, suite.description));
 			this.suiteDivs[suite.id] = suiteDiv;
@@ -658,10 +666,12 @@ define([], function() {
 		var specDiv = this.createDom('div', {className: 'spec ' + status},
 		this.createDom('a', {
 			className: 'run_spec', 
+			target: '_blank',
 			href: '?spec=' + encodeURIComponent(spec.getFullName()) + (!!spec.getSpecFile ? '&specFile=' + encodeURIComponent(spec.getSpecFile()) : '')
 		}, "run"),
 				this.createDom('a', {
 					className: 'description',
+					target: '_blank',
 					href: '?spec=' + encodeURIComponent(spec.getFullName()) + (!!spec.getSpecFile ? '&specFile=' + encodeURIComponent(spec.getSpecFile()) : ''),
 					title: spec.getFullName()
 				}, spec.description));

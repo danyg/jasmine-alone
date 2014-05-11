@@ -84,7 +84,7 @@ module.exports = function( grunt ) {
 				cmd: 'bower install'
 			},
 			build_13: {
-				cmd: 'node jasmine-alone-builder.js --basedir /<%= webapp.srcDir %> --main isolatedRunner.js --output /<%= webapp.buildDir %>'
+				cmd: 'node jasmine-alone-builder.js --basedir /<%= webapp.srcDir %> --main jasmine-alone.js --output /<%= webapp.buildDir %>'
 			}
 		},
 

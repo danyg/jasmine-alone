@@ -53,6 +53,7 @@ define(['./route'], function(route){
 
 	Test.prototype.createListElement = function(){
 		this._listElement = document.createElement('dd');
+		this._listElement.title = this._specFile;
 
 		var a = document.createElement('a');
 		this._runButton = document.createElement('button'),
@@ -61,7 +62,14 @@ define(['./route'], function(route){
 		this._runButton.onclick = this.run.bind(this);
 
 		a.href = route.getURLForSpec(this._specFile);
-		a.innerHTML = this._specFile;
+		
+		var tmp = this._specFile.split('/');
+		var baseName = tmp[tmp.length-1];
+		baseName = baseName.replace('.js', '');
+		baseName = baseName.replace('.spec', '');
+		
+		a.innerHTML = baseName;
+		a.target = '_blank';
 		
 		this._listElement.appendChild(this._runButton);
 		this._listElement.appendChild(a);

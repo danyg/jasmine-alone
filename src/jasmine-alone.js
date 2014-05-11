@@ -86,17 +86,17 @@ define([
 			 * must be called from the html runner
 			 */
 			run: function(){
+				var me = this;
 				if(!this.init()){
 					// do nothing?
 					require(this._specs, function(){
-						this._executeBeforeExecuteTests();
-						this._executeJasmine();
+						me._executeBeforeExecuteTests();
+						jasmine.getEnv().execute();
 					});
 
 					return;
 				}else{
 					if(route.isAlone()){
-						var me = this;
 						this._onFinish = this._onFinishAloneMode;
 						
 						require(this._specs, function(){
@@ -319,13 +319,36 @@ define([
 			},
 			
 			_fillTestsList: function(){
-				var i, testObj;
-				for(i = 0; i < tests.getLength(); i++){
-					testObj = tests.getIndex(i);
+				var i, testObj, specFile, path, tmp;
+				
+				this._specs.sort();
+
+				for(i = 0; i < this._specs.length; i++){
+					specFile = this._specs[i];
+					tmp = this._getPath(specFile);
+					if(tmp !== path){
+						this._createPathHeader(tmp);
+					}
+					path = tmp;
+
+					testObj = tests.getTestBySpec(specFile);
 					this._specList.appendChild(
 						testObj.createListElement()
 					);
 				}
+			},
+			
+			_createPathHeader: function(path){
+				var title = document.createElement('dt');
+				title.className = 'path';
+				title.innerHTML = path;
+				this._specList.appendChild(title);
+			},
+			
+			_getPath: function(specFile){
+				var tmp = specFile.split('/');
+				tmp.pop();
+				return tmp.join('/');
 			},
 
 			//**********************************************************************

@@ -36,6 +36,10 @@ html, body, #isolatedTests{
 	border-bottom: solid 1px #222;
 }
 
+.isolated-test-list dt.path{
+	background: #222;
+}
+
 .isolated-test-list dd:hover{
 	background-color: #666;
 }
