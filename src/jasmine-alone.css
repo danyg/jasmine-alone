@@ -1,0 +1,163 @@
+html, body, #isolatedTests{
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+.isolated-test-list{
+	width: 30%;
+	float: left;
+	height: 100%;
+	overflow: auto;
+	background-color: #222;
+	margin: 0;
+	padding: 0;
+}
+
+.isolated-test-list dd{
+	border-top: solid 1px #777;
+	-webkit-transition: background 500ms;
+	-moz-transition: background 500ms;
+	-ms-transition: background 500ms;
+	-o-transition: background 500ms;
+	transition: background 500ms;
+}
+
+.isolated-test-list dd,
+.isolated-test-list dt{
+	padding: 0px 10px;
+	margin: 0;
+	background-color: #444;
+	color: #f1f1f1;
+	line-height: 30px;
+	clear: both;
+	border-bottom: solid 1px #222;
+}
+
+.isolated-test-list dd:hover{
+	background-color: #666;
+}
+
+.isolated-test-list button{
+	float: right;
+	top: 1px;
+	position: relative;
+}
+
+.isolated-test-list button,
+.isolated-test-list a{
+	cursor: pointer;
+}
+.isolated-test-list button[disabled]{
+	opacity: .6;
+	cursor: default;
+}
+.isolated-test-list dd.running button[disabled]{
+	cursor: inherit;
+}
+
+.isolated-test-list button,
+.isolated-test-list a,
+.isolated-test-list dd a:visited{
+	color: #f1f1f1;
+	line-height: 26px;
+
+	text-decoration: none;
+}
+
+button#isolated-controls-run,
+.isolated-test-list dd button{
+	border: none;
+	padding: 0px 10px 0px 26px;
+	line-height: 25px;
+	background: 
+		#222 
+		url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)
+		no-repeat
+		5px 5px
+		;
+}
+
+.isolated-test-list dt h1{
+	font-size: 22px;
+}
+.isolated-test-list dt{
+	padding-left: 20px;
+}
+.isolated-test-list dt button,
+.isolated-test-list dt h1{
+	display: inline;
+	line-height: 45px;
+}
+
+.isolated-test-list dd{
+
+	border-left: solid 10px #222;
+
+	-webkit-transition: border-left-color 500ms;
+	-moz-transition: border-left-color 500ms;
+	-ms-transition: border-left-color 500ms;
+	-o-transition: border-left-color 500ms;
+	transition: border-left-color 500ms;
+}
+
+.isolated-test-list dd.failed{
+	border-left-color: #b41b1b;
+}
+
+.isolated-test-list dd.passed{
+	border-left-color: #1bb41b;
+}
+
+.isolated-test-list dd.running{
+	border-left-color: #1bb4af;
+	cursor: progress;
+
+	-webkit-animation-name: running;
+	-webkit-animation-iteration-count: infinite;
+	-webkit-animation-duration: 1s;
+	animation-name: running;
+	animation-iteration-count: infinite;
+	animation-duration: 1s;
+}
+
+.isolated-test-workarea{
+	width: 70%;
+	height: 100%;
+	overflow: auto;
+	float: right;
+	position: relative;
+}
+
+.isolated-test-workarea iframe{
+	width: 100%;
+	border: 0;
+}
+.isolated-test-workarea iframe.running{
+	cursor: wait;
+}
+
+iframe#isolated-tests-iframe{
+	min-height: 90%;
+}
+
+/* Chrome, Safari, Opera */
+@-webkit-keyframes running
+{
+	0%  {border-left-color: #444444;}
+	25% {border-left-color: #1bb4af;}
+	75% {border-left-color: #1bb4af;}
+	100% {border-left-color: #444444;}
+	/*25%   {border-left-color: #366968;}*/
+}
+
+/* Standard syntax */
+@keyframes running
+{
+	0%  {border-left-color: #444444;}
+	25% {border-left-color: #1bb4af;}
+	75% {border-left-color: #1bb4af;}
+	100% {border-left-color: #444444;}
+}

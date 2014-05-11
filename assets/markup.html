@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!--
+
+ @overview 
+ @author Daniel Goberitz <dalgo86@gmail.com>
+
+-->
+<html>
+	<head>
+		<title>TODO supply a title</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width">
+		<link href='../src/jasmine-alone.css' type='text/css' rel='stylesheet' media='screen' />
+	</head>
+	<body>
+		<div id="isolatedTests">
+			<dl class="isolated-test-list">
+				<dt id="isolated-controls">
+					<button id="isolated-controls-run">Run All</button>
+					<h1>Tests</h1>
+				</dt>
+				<dd class='failed'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_test.spec</a>
+				</dd>
+				<dd class='passed'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_test.spec</a>
+				</dd>
+				<dd class='running' onclick='this.className="passed"'>
+					<button disabled='disabled'>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd class='running' onclick='this.className="failed"'>
+					<button disabled='disabled'>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd class='running'>
+					<button disabled='disabled'>Run</button>
+					<a href="?specFile=a_test.spec.js">a_test.spec</a>
+				</dd>
+				
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				<dd onclick='this.className="passed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_passed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="failed"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_failed_test.spec</a>
+				</dd>
+				<dd onclick='this.className="running"'>
+					<button>Run</button>
+					<a href="?specFile=a_test.spec.js">a_running_test.spec</a>
+				</dd>
+				
+			</dl>
+			<div class="isolated-test-workarea">
+				<iframe src='http://fiddle.jshell.net/opensas/3VuGs/show/' id='isolated-tests-iframe' scrolling='no'></iframe>
+			</div>
+		</div>
+	</body>
+</html>
