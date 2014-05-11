@@ -1,3 +1,4 @@
+/* jshint ignore:start */
 define([], function() {
 
 	var HtmlReporterHelpers = {};
@@ -720,3 +721,4 @@ define([], function() {
 
 	return HtmlReporter;
 });
+/* jshint ignore:end */

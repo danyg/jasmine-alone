@@ -5,7 +5,7 @@
  * 
  */
 
-define(function(){
+define([], function(){
 	'use strict';
 	
 	function printReporter(reporter) {
