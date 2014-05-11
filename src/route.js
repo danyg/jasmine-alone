@@ -17,7 +17,7 @@ define([], function(){
 		
 		getCurrentSpecFile: function(){
 			var m = s().match(/[?&]specFile=([^&]*)/);
-			return (m !== null && !!m[1]) ? m[1] : false;
+			return (m !== null && !!m[1]) ? decodeURIComponent(m[1]) : false;
 		},
 
 		getURLForSpec: function(specFile){

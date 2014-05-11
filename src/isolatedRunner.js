@@ -5,7 +5,19 @@
  * 
  */
 /* global jasmine: true, document: true, window: true, define: true */
-define(['./route', './tests', './printer', './fixReporter'], function(route, tests, printReporter, fixReporter){
+define([
+	'./route', 
+	'./tests', 
+	'./printer', 
+	'./fixReporter',
+	'./jasmine-html-isolated'
+], function(
+	route, 
+	tests, 
+	printReporter, 
+	fixReporter,
+	HtmlReporter
+){
 
 	'use strict';
 	
@@ -34,6 +46,7 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 					}
 				}
 				
+				this._childSpecsObjectsBySpecFile = {};
 			},
 
 			init: function(){
@@ -162,10 +175,10 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 				}
 			},
 			
-			childFinish: function(specFile, reporter){
+			childFinish: function(specFile, reporter, childRunner){
 				if(route.isAlone()){
 					if(this._isRunningInIframe){
-						this._parentWindow.isolatedRunner.childFinish(specFile, reporter);
+						this._parentWindow.isolatedRunner.childFinish(specFile, reporter, jasmine.getEnv().currentRunner());
 					}
 					// else in case that is executed alone but outside of the iframe
 					// we won't need to call the parentWindow
@@ -177,6 +190,10 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 						this._printReporter(reporter);
 						this._checkIsPassed(reporter, specFile);
 					}
+					
+					this._addChildSpecs(specFile, childRunner);
+					
+					// check if is runned again or using the button
 					this._next();
 				}
 			},
@@ -187,7 +204,11 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 			
 			getExternalReporter: function(){
 				if(route.isAlone()){
-					return this._parentWindow.isolatedRunner.getExternalReporter();
+					if(this._isRunningInIframe){
+						return this._parentWindow.isolatedRunner.getExternalReporter();
+					}else{
+						return false;
+					}
 				}else{
 					return this._defaultReporter;
 				}
@@ -211,7 +232,7 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 				this._defaultReporter.onFinishSuite();
 				this._defaultReporter.finished = true;
 				
-				printReporter();
+				this._printReporter(this._reporter);
 				
 				this._iframe.style.display = 'none';
 				// @todo TODO show the merged HTML REPORT
@@ -232,7 +253,7 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 			 */
 			_prepareIsolated: function(){
 				this.ISOLATED = true;
-
+				
 				fixReporter(this._defaultReporter);
 				
 				this._specs = this._findSpecs();
@@ -240,8 +261,6 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 				tests.createTestsObjects(this._specs);
 
 				this._createDOMContext();
-
-				
 			},
 
 			/**
@@ -252,7 +271,7 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 			_prepareAlone: function(){
 				this.ISOLATED = false;
 
-				this._setHeightInterval = setInterval(this.setHeight.bind(this), 300);
+//				this._setHeightInterval = setInterval(this.setHeight.bind(this), 300);
 
 				this._specs = this._findSpecs();
 				tests.setRunner(this);
@@ -324,12 +343,19 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 			},
 
 			load: function(testObj){
+				this._currentSpecFile = testObj.getSpecFile();
 				if(!route.isAlone()){
+					this._defaultReporter._ExecutingSpecFile(this._currentSpecFile);
 					testObj.onRun();
+					this._iframe.style.display = 'block';
 					this._iframe.src = testObj.getSRC();
 				}else{
 					this._specs = [testObj.getSpecFile()];
 				}
+			},
+			
+			getRunningSpec: function(){
+				return this._currentSpecFile;
 			},
 			
 			runCurrent: function(){
@@ -355,21 +381,30 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 			},
 			
 			_setReporter: function(){
+				var me = this;
 				if(!!window.reporter){
 					this._defaultReporter = window.reporter;
 				}else{
 					if(!!window._phantom){
 						this._defaultReporter = new jasmine.JsApiReporter;
 					}else{
-						this._defaultReporter = new jasmine.HtmlReporter;
+						if(route.isAlone()){
+							this._defaultReporter = new jasmine.HtmlReporter;
+						}else{
+							this._defaultReporter = new HtmlReporter;
+							jasmine.getEnv().specFilter = function(spec) {
+								return me._defaultReporter.specFilter(spec);
+							};
+						}
 					}
+
 					window.reporter = this._defaultReporter;
 				}
 				
 				if(window.reporter instanceof jasmine.HtmlReporter){
 					this._reporterClass = 'HtmlReporter';
 					jasmine.getEnv().specFilter = function(spec) {
-						return window.reporter.specFilter(spec);
+						return me._defaultReporter.specFilter(spec);
 					};
 				}else if(window.reporter instanceof jasmine.JsApiReporter){
 					this._reporterClass = 'JsApiReporter';
@@ -448,6 +483,42 @@ define(['./route', './tests', './printer', './fixReporter'], function(route, tes
 
 				var test = tests.getTestBySpec(specFile);
 				test.onFinish(passedState);
+			},
+			
+			_addChildSpecs: function(specFile, runner){
+				this._childSpecsObjectsBySpecFile[specFile] = runner.specs();
+				this._processSpecsByFile(this._childSpecsObjectsBySpecFile[specFile], specFile, []);
+			},
+			
+			getSpecs: function(){
+				var specs = [], specFile, spec, i;
+				for(i = 0; i < this._specs.length; i++){
+					specFile = this._specs[i];
+					if(this._childSpecsObjectsBySpecFile.hasOwnProperty(specFile)){
+						this._processSpecsByFile(
+							this._childSpecsObjectsBySpecFile[specFile], 
+							specFile, 
+							specs
+						);
+					}
+				}
+				return specs;
+			},
+			
+			_processSpecsByFile: function(specsByFile, specFile, specs){
+				var i;
+				for(i = 0; i < specsByFile.length; i++){
+					this._fixSpecNSuite(specsByFile[i], specFile);
+					specs.push(specsByFile[i]);
+				}
+			},
+			
+			_fixSpecNSuite: function(spec, specFile){
+				var f = function(){
+					return specFile;
+				};
+				spec.getSpecFile = f;
+				spec.suite.getSpecFile = f;
 			}
 		};
 		

@@ -25,6 +25,7 @@ define([], function(){
 				 "reportSpecResults",
 				 "log"
 		   ],
+		   queueBySpecFile = {},
 		   queue = []
 		;
 
@@ -32,8 +33,19 @@ define([], function(){
 			if(!!reporter[method]){
 				oMethods[method] = reporter[method];
 				reporter[method] = function(){
-					queue.push([method, arguments]);
+					var specFile = window.isolatedRunner.getRunningSpec();
+					queueBySpecFile[specFile].push([method, arguments]);
 				};
+			}
+		}
+		
+		function buildQueue(){
+			var sF, i;
+			queue = [];
+			for(sF in queueBySpecFile){
+				for(i = 0; i < queueBySpecFile[sF].length; i++){
+					queue.push( queueBySpecFile[sF][i] );
+				}
 			}
 		}
 
@@ -47,6 +59,10 @@ define([], function(){
 		for(var i = 0; i < functionNames.length; i++){
 			proxyMethod(functionNames[i]);
 		}
+
+		reporter._ExecutingSpecFile = function(specFile){
+			queueBySpecFile[specFile] = [];
+		};
 
 		reporter.reportRunnerStarting = function(runner){
 			var specs = runner.specs(),
@@ -81,7 +97,7 @@ define([], function(){
 		}
 
 		reporter.onFinishSuite = function(){
-			var specs = parentRunner.specs(), spec;
+			var specs = window.isolatedRunner.getSpecs(), spec;
 			// FIX SUITES IDS
 			for(var i = 0; i < specs.length; i++){
 				spec = specs[i];
@@ -91,6 +107,7 @@ define([], function(){
 					childSuites[ spec.suite.getFullName() ] = spec.suite;
 				}
 			}
+			childSpecs = specs;
 
 			if(!!oMethods.reportRunnerStarting){
 				oMethods.reportRunnerStarting.call(reporter, parentRunner);
@@ -101,6 +118,10 @@ define([], function(){
 				}
 			}
 			var a;
+			// clean reporter
+			// build queue
+			buildQueue();
+			
 			for(var i = 0; i < queue.length; i++){
 				a = queue[i];
 				method = a[0];
