@@ -110,9 +110,24 @@ button#isolated-controls-run,
 .isolated-test-list dd.failed{
 	border-left-color: #b41b1b;
 }
+.isolated-test-list dd.failed.timeout{
+	border-left-color: #a0a000;
+}
 
 .isolated-test-list dd.passed{
 	border-left-color: #1bb41b;
+}
+
+.isolated-test-list dd.loading{
+	border-left-color: orange;
+	cursor: progress;
+
+	-webkit-animation-name: loading;
+	-webkit-animation-iteration-count: infinite;
+	-webkit-animation-duration: 1s;
+	animation-name: loading;
+	animation-iteration-count: infinite;
+	animation-duration: 1s;
 }
 
 .isolated-test-list dd.running{
@@ -163,5 +178,24 @@ iframe#isolated-tests-iframe{
 	0%  {border-left-color: #444444;}
 	25% {border-left-color: #1bb4af;}
 	75% {border-left-color: #1bb4af;}
+	100% {border-left-color: #444444;}
+}
+
+/* Chrome, Safari, Opera */
+@-webkit-keyframes loading
+{
+	0%  {border-left-color: #444444;}
+	25% {border-left-color: orange;}
+	75% {border-left-color: orange;}
+	100% {border-left-color: #444444;}
+	/*25%   {border-left-color: #366968;}*/
+}
+
+/* Standard syntax */
+@keyframes loading
+{
+	0%  {border-left-color: #444444;}
+	25% {border-left-color: orange;}
+	75% {border-left-color: orange;}
 	100% {border-left-color: #444444;}
 }

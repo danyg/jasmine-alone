@@ -16,7 +16,7 @@ define([], function(){
 		}
 
 
-		if (!!reporter && reporter instanceof jasmine.JsApiReporter) {
+		if (!!reporter) {
 			var results = reporter.results();
 			var suites = reporter.suites();
 			var i;

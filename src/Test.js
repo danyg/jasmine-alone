@@ -36,7 +36,8 @@ define(['./route'], function(route){
 	};
 
 	Test.prototype.run = function(){
-		this._handler.getRunner().load(this);
+		this._handler.getRunner().setCurrentTestObj(this);
+		this._handler.getRunner().load();
 	};
 
 	Test.prototype.onRun = function(){
@@ -45,6 +46,25 @@ define(['./route'], function(route){
 			this._listElement.className = 'running';
 		}
 	};
+	
+	Test.prototype.getElement = function(){
+		return this._listElement;
+	};
+
+	Test.prototype.markAsLoading = function(){
+		if(!route.isAlone()){
+			this._runButton.setAttribute('disabled', 'disabled');
+			this._listElement.className += ' loading';
+		}
+	};
+
+	Test.prototype.markAsTimeout = function(){
+		if(!route.isAlone()){
+			this.onFinish(false);
+			this._listElement.className += ' timeout';
+		}
+	};
+	
 
 	Test.prototype.onFinish = function(passedState){
 		this._runButton.removeAttribute('disabled');	
