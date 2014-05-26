@@ -6,6 +6,11 @@ html, body, #isolatedTests{
 	overflow: hidden;
 }
 
+body.jasmine-alone-whole,
+body.jasmine-alone-whole #isolatedTests{
+	overflow: auto;
+}
+
 .isolated-test-list{
 	width: 30%;
 	float: left;

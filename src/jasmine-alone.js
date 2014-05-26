@@ -46,7 +46,6 @@ define([
 				if(!!this._parentWindow && this._parentWindow !== window){
 					if(!!this._parentWindow.isolatedRunner){
 						this._isRunningInIframe = true;
-						this._parentWindow.isolatedRunner.onChildStart();
 					}
 				}
 
@@ -66,6 +65,8 @@ define([
 
 					return true;
 				}else{
+					this.WHOLE = true;
+					document.body.className += ' jasmine-alone-whole';
 					return false;
 				}
 			},
@@ -112,6 +113,8 @@ define([
 								jasmine.getEnv().addReporter(me.getExternalReporter());
 							}
 							me._executeJasmine();
+							
+							me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 						});
 					}else{
 						if(route.isAutoStart()){
@@ -183,7 +186,8 @@ define([
 				}
 			},
 
-			onChildStart: function() {
+			onChildStart: function(specFile) {
+				this.setCurrentTestObj(tests.getTestBySpec(specFile));
 				var testObj = this.getCurrentTestObj();
 				this._clearDumbPreventerWatchDog();
 				testObj.onRun();
@@ -482,6 +486,9 @@ define([
 				if(route.isAlone()){
 					this._reporter = new jasmine.JsApiReporter();
 					jasmine.getEnv().addReporter(this._reporter);
+					
+					var viewReporter = new jasmine.HtmlReporter();
+					jasmine.getEnv().addReporter(viewReporter);
 				}
 			},
 
