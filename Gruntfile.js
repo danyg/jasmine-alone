@@ -1,13 +1,13 @@
 /*global module, require */
 module.exports = function( grunt ) {
 	'use strict';
-	
+
 	function m(a,b){
 		var i, c = {};
-		for(i in a){
+		for(i in a) {
 			c[i] = a[i];
 		}
-		for(i in b){
+		for(i in b) {
 			if(typeof(b[i]) === 'object'){
 				c[i] = m(c[i], b[i]);
 			}else{
@@ -72,13 +72,13 @@ module.exports = function( grunt ) {
 			}
 		}
 	};
-	
+
 	var requireConfig_build_13 = m(requireConfig, {paths: {'jasmine-durandal': R +'<%= webapp.buildDir %>/jasmine-durandal-1.3x'}});
 //	var requireConfig_build_20 = m(requireConfig, {paths: {'jasmine-durandal': R +'<%= webapp.buildDir %>/jasmine-durandal-2.x.js'}});
 
 	grunt.initConfig({
 		webapp: webappConfig,
-		
+
 		exec: {
 			bower: {
 				cmd: 'bower install'
@@ -172,7 +172,7 @@ module.exports = function( grunt ) {
 				path: 'http://localhost:<%= connect.build.options.port %>'
 			}
 		},
-		
+
 		requirejs: {
 			compile: {
 				options: {
@@ -207,7 +207,7 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-open');
 	grunt.loadNpmTasks('grunt-exec');
-	
+
 	grunt.loadNpmTasks('grunt-contrib-requirejs');
 
 //Resgistering Tasks

@@ -4,8 +4,8 @@ Jasmine Alone
 A jasmine tool to run the specs in an isolated way.
 
 ## Introduction
-The Jasmine Developers says that is responsability to the developer clean the context 
-for the next tests, that is an excelent idea, in an ideal world, but sometimes is 
+The Jasmine Developers says that is responsability to the developer clean the context
+for the next tests, that is an excelent idea, in an ideal world, but sometimes is
 really complex to mantain that approach, in big teams and in some kind of project based on
 certains frameworks.
 When the needed effort to clean the environment is so big that is easier to not test something
@@ -33,4 +33,10 @@ really usable.
 
 # How To use
 
-...
+As prerequisite your project should use requirejs.
+
+window.specs = []; // list of specs to be runned
+
+require(['jasmine-alone/dist/jasmine-alone.js'], function() {
+	isolatedRunner.run();
+});

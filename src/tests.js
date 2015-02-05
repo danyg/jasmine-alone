@@ -1,16 +1,16 @@
-/* 
- * 
- *  @overview 
+/*
+ *
+ *  @overview
  *  @author Daniel Goberitz <dalgo86@gmail.com>
- * 
+ *
  */
 
 define(['./route', './Test'], function(route, Test){
-	
+
 	'use strict';
-	
+
 	var tests = {
-		
+
 		_testsById: null,
 		_testsBySpec: null,
 		_tests: null,
@@ -24,15 +24,15 @@ define(['./route', './Test'], function(route, Test){
 				this._add(new Test(specsLists[i], this));
 			}
 		},
-		
+
 		setRunner: function(runner){
 			this._runner = runner;
 		},
-		
+
 		getRunner: function(){
 			return this._runner;
 		},
-		
+
 		_clean: function(){
 			this._testsById = {};
 			this._testsBySpec = {};
@@ -56,7 +56,7 @@ define(['./route', './Test'], function(route, Test){
 			this._log('Loading: ' + testObj.getSpecFile());
 	 		parent.appendChild(testObj.getElement());
 		},
-		
+
 		// IFRAMES INDEXES METHODS
 
 		getLength: function(){
@@ -64,27 +64,27 @@ define(['./route', './Test'], function(route, Test){
 		},
 
 		/**
-		 * 
+		 *
 		 * @param {Int} ix
 		 * @returns {Test}
 		 */
 		getIndex: function(ix){
 			return this._tests[ix];
 		},
-		
+
 		getTests: function(){
 			return this._tests;
 		},
-		
+
 		getTestBySpec: function(specFile){
 			return (!!this._testsBySpec[specFile]) ? this._testsBySpec[specFile] : false;
 		},
-		
+
 		getTestById: function(id){
 			return (!!this._testsBySpec[id]) ? this._testsBySpec[id] : false;
 		},
-		
-		
+
+
 		// Private Methods
 
 
@@ -106,8 +106,30 @@ define(['./route', './Test'], function(route, Test){
 		_log: function(){
 			// @todo TODO console safe null
 			window.console.log(Array.prototype.join.call(arguments, ' '));
+		},
+
+		isTimeOut: function(){
+			var timeOut = false;
+			for(var i = 0; i < this._tests.length; i++){
+				if(this._tests[i].isTimeOut()){
+					timeOut = true;
+					break;
+				}
+			}
+			return timeOut;
+		},
+
+		isFailed: function(){
+			var failed = false;
+			for(var i = 0; i < this._tests.length; i++){
+				if(this._tests[i].isPassed() !== true && this._tests[i].isPassed() !== undefined){
+					failed = true;
+					break;
+				}
+			}
+			return failed;
 		}
 	};
-	
+
 	return tests;
 });

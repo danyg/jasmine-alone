@@ -6,6 +6,11 @@ html, body, #isolatedTests{
 	overflow: hidden;
 }
 
+body.jasmine-alone-whole,
+body.jasmine-alone-whole #isolatedTests{
+	overflow: auto;
+}
+
 .isolated-test-list{
 	width: 30%;
 	float: left;
@@ -14,6 +19,20 @@ html, body, #isolatedTests{
 	background-color: #222;
 	margin: 0;
 	padding: 0;
+	position: relative;
+	z-index: 2;
+}
+
+.isolated-test-list.passed{
+	box-shadow: 0px 0px 40px 5px #1bb41b
+}
+
+.isolated-test-list.failed{
+	box-shadow: 0px 0px 40px 5px #b41b1b
+}
+
+.isolated-test-list.timeout{
+	box-shadow: 0px 0px 40px 5px #E88809
 }
 
 .isolated-test-list dd{
@@ -76,8 +95,8 @@ button#isolated-controls-run,
 	border: none;
 	padding: 0px 10px 0px 26px;
 	line-height: 25px;
-	background: 
-		#222 
+	background:
+		#222
 		url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)
 		no-repeat
 		5px 5px
@@ -110,9 +129,25 @@ button#isolated-controls-run,
 .isolated-test-list dd.failed{
 	border-left-color: #b41b1b;
 }
+.isolated-test-list dd.failed.timeout{
+	border-left-color: #E88809;
+	background: #7B664B;
+}
 
 .isolated-test-list dd.passed{
 	border-left-color: #1bb41b;
+}
+
+.isolated-test-list dd.loading{
+	border-left-color: orange;
+	cursor: progress;
+
+	-webkit-animation-name: loading;
+	-webkit-animation-iteration-count: infinite;
+	-webkit-animation-duration: 1s;
+	animation-name: loading;
+	animation-iteration-count: infinite;
+	animation-duration: 1s;
 }
 
 .isolated-test-list dd.running{
@@ -128,7 +163,7 @@ button#isolated-controls-run,
 }
 
 .isolated-test-workarea{
-	width: 70%;
+	width: 69%;
 	height: 100%;
 	overflow: auto;
 	float: right;
@@ -164,4 +199,103 @@ iframe#isolated-tests-iframe{
 	25% {border-left-color: #1bb4af;}
 	75% {border-left-color: #1bb4af;}
 	100% {border-left-color: #444444;}
+}
+
+/* Chrome, Safari, Opera */
+@-webkit-keyframes loading
+{
+	0%  {border-left-color: #444444;}
+	25% {border-left-color: orange;}
+	75% {border-left-color: orange;}
+	100% {border-left-color: #444444;}
+	/*25%   {border-left-color: #366968;}*/
+}
+
+/* Standard syntax */
+@keyframes loading
+{
+	0%  {border-left-color: #444444;}
+	25% {border-left-color: orange;}
+	75% {border-left-color: orange;}
+	100% {border-left-color: #444444;}
+}
+
+@keyframes highlight
+{
+	0%  {background: rgba(241, 218, 54, .5); color: initial;}
+	50% {background: rgba(0, 0, 0, .5); color: #ffffff;}
+	100%  {background: rgba(241, 218, 54, .5); color: initial;}
+}
+@-webkit-keyframes highlight
+{
+	0%  {background: rgba(241, 218, 54, .5); color: initial;}
+	50% {background: rgba(0, 0, 0, .5); color: #ffffff;}
+	100%  {background: rgba(241, 218, 54, .5); color: initial;}
+}
+.time-counter{color: #888;}
+
+body.timeout, body.timeout #HTMLReporter{
+	background: #fff0cc !important;
+}
+
+#HTMLReporter .summary .suite.skipped,
+
+#HTMLReporter .summary .suite.empty{
+	background: rgba(232, 136, 9, .5);
+}
+
+#HTMLReporter .summary .specSummary.highlighted{
+	-webkit-animation-name: highlight;
+	-webkit-animation-iteration-count: infinite;
+	-webkit-animation-duration: 1s;
+	animation-name: highlight;
+	animation-iteration-count: infinite;
+	animation-duration: 1s;
+}
+
+#HTMLReporter .summary .specSummary.skipped,
+#HTMLReporter .summary .specSummary.empty{
+	background: rgba(232, 136, 9, .5);
+}
+#HTMLReporter .skippedAlert.bar{
+	background: rgba(232, 136, 9, 1);
+}
+#HTMLReporter .skippedAlert.bar:hover{
+	text-decoration: none;
+}
+
+#HTMLReporter .symbolSummary li.empty:before{
+	color: #bababa;
+	content: "\02717";
+}
+#HTMLReporter .symbolSummary li.skipped:before{
+	color: #E88809;
+	content: "\02717";
+}
+div#isolatedTests div#HTMLReporter .symbolSummary li.failed{
+	line-height: inherit;
+}
+#HTMLReporter .symbolSummary li.failed:before{
+	content: "\02717";
+}
+
+#HTMLReporter .symbolSummary li.passed:before{
+	content: "\02713";
+
+}
+
+#HTMLReporter .symbolSummary li{
+	height: 14px;
+	width: 18px;
+	font-size: 20px !important;
+	position: relative;
+}
+
+#HTMLReporter .symbolSummary li a{
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	display: block;
+	top: 0;
+	left: 0;
 }

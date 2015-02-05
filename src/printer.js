@@ -1,13 +1,13 @@
-/* 
- * 
- *  @overview 
+/*
+ *
+ *  @overview
  *  @author Daniel Goberitz <dalgo86@gmail.com>
- * 
+ *
  */
 
 define([], function(){
 	'use strict';
-	
+
 	function printReporter(reporter) {
 		var txt = '';
 
@@ -16,7 +16,7 @@ define([], function(){
 		}
 
 
-		if (!!reporter && reporter instanceof jasmine.JsApiReporter) {
+		if (!!reporter) {
 			var results = reporter.results();
 			var suites = reporter.suites();
 			var i;
@@ -58,7 +58,11 @@ define([], function(){
 				for (i in result.messages) {
 					if (result.messages.hasOwnProperty(i)) {
 						m = result.messages[i];
-						txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
+						if(m.actual === undefined && m.matcherName  === undefined && m.expected === undefined){
+							txt += '\n' + tabs + '\t' + m.message + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+						}else{
+							txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+						}
 					}
 				}
 			}
@@ -76,6 +80,6 @@ define([], function(){
 
 		}
 	}
-	
+
 	return printReporter;
 });

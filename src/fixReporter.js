@@ -1,18 +1,19 @@
-/* 
- * 
- *  @overview 
+/*
+ *
+ *  @overview
  *  @author Daniel Goberitz <dalgo86@gmail.com>
- * 
+ *
  */
 
 define([], function(){
-	
+
 	function fixReporter(reporter){
 		var parentRunner = jasmine.getEnv().currentRunner()//,
 //			reporter = getReporter()
 		;
 
-		var childSpecs = [],
+		var startedAt = new Date,
+			childSpecs = [],
 			childSuites = {},
 			childTopLevelSuites = [],
 			suites = 0;
@@ -26,23 +27,31 @@ define([], function(){
 				 "log"
 		   ],
 		   queueBySpecFile = {},
+		   specFilesOrder = [],
 		   queue = []
 		;
 
 		function proxyMethod(method){
-			if(!!reporter[method]){
-				oMethods[method] = reporter[method];
-				reporter[method] = function(){
-					var specFile = window.isolatedRunner.getRunningSpec();
-					queueBySpecFile[specFile].push([method, arguments]);
-				};
+			try{
+
+				if(!!reporter[method]){
+					oMethods[method] = reporter[method];
+					reporter[method] = function(){
+						var specFile = window.isolatedRunner.getRunningSpec();
+						queueBySpecFile[specFile].push([method, arguments]);
+					};
+				}
+			}catch(e){
+
 			}
 		}
-		
+
 		function buildQueue(){
-			var sF, i;
+			var sF, i, j;
 			queue = [];
-			for(sF in queueBySpecFile){
+
+			for(j=0; j < specFilesOrder.length; j++){
+				sF = specFilesOrder[j];
 				for(i = 0; i < queueBySpecFile[sF].length; i++){
 					queue.push( queueBySpecFile[sF][i] );
 				}
@@ -61,6 +70,9 @@ define([], function(){
 		}
 
 		reporter._ExecutingSpecFile = function(specFile){
+			if(specFilesOrder.indexOf(specFile) === -1){
+				specFilesOrder.push(specFile);
+			}
 			queueBySpecFile[specFile] = [];
 		};
 
@@ -83,6 +95,7 @@ define([], function(){
 					id : suiteOrSpec.id,
 					name : suiteOrSpec.description,
 					type : isSuite ? 'suite' : 'spec',
+					skipped : !!suiteOrSpec.skipped,
 					children : []
 				};
 
@@ -101,35 +114,29 @@ define([], function(){
 			// FIX SUITES IDS
 			for(var i = 0; i < specs.length; i++){
 				spec = specs[i];
-				spec.id = i;
 				if(!childSuites.hasOwnProperty(spec.suite.getFullName()) ){
-					spec.suite.id = ++suites;
 					childSuites[ spec.suite.getFullName() ] = spec.suite;
 				}
 			}
-			childSpecs = specs;
+			childSpecs = specs; // parentRunner will return this array
 
 			if(!!oMethods.reportRunnerStarting){
-				oMethods.reportRunnerStarting.call(reporter, parentRunner);
-				var q = document.getElementById('HTMLReporter'),
-					o = document.getElementById('isolated-test-workarea');
-				if(q){
-					o.appendChild(q.parentNode.removeChild(q));
-				}
+				oMethods.reportRunnerStarting.call(reporter, parentRunner, startedAt);
 			}
 			var a;
 			// clean reporter
 			// build queue
 			buildQueue();
-			
-			for(var i = 0; i < queue.length; i++){
-				a = queue[i];
-				method = a[0];
-				args = a[1];
 
-				if(!!oMethods[ method ]){
-					oMethods[ method ].apply(reporter, args);
-				}
+			for(var i = 0; i < queue.length; i++){
+				try{
+					a = queue[i];
+					method = a[0];
+					args = a[1];
+					if(!!oMethods[ method ]){
+						oMethods[ method ].apply(reporter, args);
+					}
+				}catch(e){}
 			}
 
 			if(!!oMethods.reportRunnerResults){
@@ -140,7 +147,7 @@ define([], function(){
 		};
 
 	}
-	
+
 	return fixReporter;
-	
+
 });

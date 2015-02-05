@@ -22,60 +22,101 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-(function(){
+(function() {
 
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\Test.js
-	/* 
-	 * 
-	 *  @overview 
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\Test.js
+	/*
+	 *
+	 *  @overview
 	 *  @author Daniel Goberitz <dalgo86@gmail.com>
-	 * 
+	 *
 	 */
 	
 	define('/__jasmine-alone__/Test', ['/__jasmine-alone__/route'], function(route){
-		
+	
 		'use strict';
-		
+	
 		function Test(specFile, handler){
 			this._handler = handler;
 			this._specFile = specFile;
 	
 			this.id = this._handler.specToId(specFile);
 			this.src = route.getURLForSpec(this._specFile);
-			
+	
 			this._listElement = null;
+	
+			this._lastReporter = null;
+			this._lastChildRunner = null;
+			this._passed = undefined;
 		}
-		
+	
 		Test.prototype.getId = function(){
 			return this.id;
 		};
-		
+	
 		Test.prototype.getSpecFile = function(){
 			return this._specFile;
 		};
-		
+	
 		Test.prototype.getSRC = function(){
 			return this.src;
 		};
-		
+	
 		Test.prototype.getURL = function(){
 			return this.src;
 		};
 	
 		Test.prototype.run = function(){
-			this._handler.getRunner().load(this);
+			this._handler.getRunner().setCurrentTestObj(this);
+			this._handler.getRunner().load();
 		};
 	
 		Test.prototype.onRun = function(){
-			if(!route.isAlone()){
-				this._runButton.setAttribute('disabled', 'disabled');
-				this._listElement.className = 'running';
+			this._timeOut = false;
+			this._tS = Date.now();
+	
+			if(this.finished !== true){
+				if(!route.isAlone()){
+					this._runButton.setAttribute('disabled', 'disabled');
+					this._listElement.className = 'running';
+				}
 			}
 		};
 	
-		Test.prototype.onFinish = function(passedState){
-			this._runButton.removeAttribute('disabled');	
+		Test.prototype.getElement = function(){
+			return this._listElement;
+		};
+	
+		Test.prototype.markAsLoading = function(){
+			if(!route.isAlone()){
+				this._runButton.setAttribute('disabled', 'disabled');
+				this._listElement.className += ' loading';
+			}
+		};
+	
+		Test.prototype.markAsTimeout = function(){
+			this._timeOut = true;
+			this._passed = undefined;
+			if(!route.isAlone()){
+				this.onFinish(false, true);
+				this._listElement.className += ' timeout';
+			}
+		};
+	
+		Test.prototype.onFinish = function(passedState, internal){
+			this._tE = Date.now();
+			this._runButton.removeAttribute('disabled');
 			this._listElement.className = passedState ? ' passed' : ' failed';
+			if(!internal){
+				this._passed = passedState;
+			}
+	
+			if(!this._tS){
+				this._timeCounter.innerHTML = ' (Not Executed)';
+			} else {
+				this._timeCounter.innerHTML = ' (' + (this._tE - this._tS) + 'ms)';
+			}
+			this.finished = true;
 		};
 	
 		Test.prototype.createListElement = function(){
@@ -83,23 +124,26 @@ SOFTWARE.
 			this._listElement.title = this._specFile;
 	
 			var a = document.createElement('a');
+			this._timeCounter = document.createElement('span');
+			this._timeCounter.className = 'time-counter';
 			this._runButton = document.createElement('button'),
 	
 			this._runButton.innerHTML = 'Run';
 			this._runButton.onclick = this.run.bind(this);
 	
 			a.href = route.getURLForSpec(this._specFile);
-			
+	
 			var tmp = this._specFile.split('/');
 			var baseName = tmp[tmp.length-1];
 			baseName = baseName.replace('.js', '');
 			baseName = baseName.replace('.spec', '');
-			
+	
 			a.innerHTML = baseName;
 			a.target = '_blank';
-			
+	
 			this._listElement.appendChild(this._runButton);
 			this._listElement.appendChild(a);
+			this._listElement.appendChild(this._timeCounter);
 	
 			return this._listElement;
 		};
@@ -108,27 +152,137 @@ SOFTWARE.
 			return this._listElement;
 		};
 	
+		Test.prototype.setReporter = function(reporter){
+			this._lastReporter = reporter;
+		};
+	
+		Test.prototype.getReporter = function(){
+			return this._lastReporter;
+		};
+	
+		Test.prototype.setChildRunner = function(childRunner){
+			this._lastChildRunner = childRunner;
+		};
+	
+		Test.prototype.getChildRunner = function(){
+			return this._lastChildRunner;
+		};
+	
+		Test.prototype.isPassed = function(){
+			return this._passed;
+		};
+	
+		Test.prototype.isTimeOut = function(){
+			return this._timeOut;
+		};
+	
 		return Test;
 	});
 	
 	
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\fixJasmineXit.js
+	define('/__jasmine-alone__/fixJasmineXit', [], function(){
+		'use strict';
 	
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\fixReporter.js
-	/* 
-	 * 
-	 *  @overview 
+		var oldIt = jasmine.Env.prototype.it;
+		var oldDescribe = jasmine.Env.prototype.describe;
+		var oldBeforeEach = jasmine.Env.prototype.beforeEach;
+		var oldAfterEach = jasmine.Env.prototype.afterEach;
+	
+		jasmine.Env.prototype.it = function (description, fnc) {
+			if(!!this.currentSuite && this.currentSuite.skipped){
+				return this.xit(description, fnc);
+			} else {
+				return oldIt.apply(this, arguments);
+			}
+		};
+	
+		jasmine.Env.prototype.beforeEach = function(){
+			if(!!this.currentSuite && this.currentSuite.skipped){
+				return;
+			} else {
+				return oldBeforeEach.apply(this, arguments);
+			}
+		};
+	
+		jasmine.Env.prototype.afterEach = function(){
+			if(!!this.currentSuite && this.currentSuite.skipped){
+				return;
+			} else {
+				return oldAfterEach.apply(this, arguments);
+			}
+		};
+	
+		jasmine.Env.prototype.xit = function (description) {
+			var spec = new jasmine.Spec(this, this.currentSuite, description);
+			this.currentSuite.add(spec);
+			this.currentSpec = spec;
+	
+			spec.runs(function(){
+				spec.skipped = true;
+			});
+	
+			return spec;
+		};
+	
+		jasmine.Env.prototype.describe = function(description, specDefinitions){
+			if(!!this.currentSuite && this.currentSuite.skipped){
+				return this.xdescribe(description, specDefinitions);
+			} else {
+				return oldDescribe.apply(this, arguments);
+			}
+		};
+	
+		jasmine.Env.prototype.xdescribe = function(description, specDefinitions){
+		  var suite = new jasmine.Suite(this, description, specDefinitions, this.currentSuite);
+		  suite.skipped = true;
+	
+		  var parentSuite = this.currentSuite;
+		  if (parentSuite) {
+		    parentSuite.add(suite);
+		  } else {
+		    this.currentRunner_.add(suite);
+		  }
+	
+		  this.currentSuite = suite;
+	
+		  var declarationError = null;
+		  try {
+		    specDefinitions.call(suite);
+		  } catch(e) {
+		    declarationError = e;
+		  }
+	
+		  if (declarationError) {
+		    this.it("encountered a declaration exception", function() {
+		      throw declarationError;
+		    });
+		  }
+	
+		  this.currentSuite = parentSuite;
+	
+		  return suite;
+		};
+	
+	});
+	
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\fixReporter.js
+	/*
+	 *
+	 *  @overview
 	 *  @author Daniel Goberitz <dalgo86@gmail.com>
-	 * 
+	 *
 	 */
 	
 	define('/__jasmine-alone__/fixReporter', [], function(){
-		
+	
 		function fixReporter(reporter){
 			var parentRunner = jasmine.getEnv().currentRunner()//,
 	//			reporter = getReporter()
 			;
 	
-			var childSpecs = [],
+			var startedAt = new Date,
+				childSpecs = [],
 				childSuites = {},
 				childTopLevelSuites = [],
 				suites = 0;
@@ -142,23 +296,31 @@ SOFTWARE.
 					 "log"
 			   ],
 			   queueBySpecFile = {},
+			   specFilesOrder = [],
 			   queue = []
 			;
 	
 			function proxyMethod(method){
-				if(!!reporter[method]){
-					oMethods[method] = reporter[method];
-					reporter[method] = function(){
-						var specFile = window.isolatedRunner.getRunningSpec();
-						queueBySpecFile[specFile].push([method, arguments]);
-					};
+				try{
+	
+					if(!!reporter[method]){
+						oMethods[method] = reporter[method];
+						reporter[method] = function(){
+							var specFile = window.isolatedRunner.getRunningSpec();
+							queueBySpecFile[specFile].push([method, arguments]);
+						};
+					}
+				}catch(e){
+	
 				}
 			}
-			
+	
 			function buildQueue(){
-				var sF, i;
+				var sF, i, j;
 				queue = [];
-				for(sF in queueBySpecFile){
+	
+				for(j=0; j < specFilesOrder.length; j++){
+					sF = specFilesOrder[j];
 					for(i = 0; i < queueBySpecFile[sF].length; i++){
 						queue.push( queueBySpecFile[sF][i] );
 					}
@@ -177,6 +339,9 @@ SOFTWARE.
 			}
 	
 			reporter._ExecutingSpecFile = function(specFile){
+				if(specFilesOrder.indexOf(specFile) === -1){
+					specFilesOrder.push(specFile);
+				}
 				queueBySpecFile[specFile] = [];
 			};
 	
@@ -199,6 +364,7 @@ SOFTWARE.
 						id : suiteOrSpec.id,
 						name : suiteOrSpec.description,
 						type : isSuite ? 'suite' : 'spec',
+						skipped : !!suiteOrSpec.skipped,
 						children : []
 					};
 	
@@ -217,35 +383,29 @@ SOFTWARE.
 				// FIX SUITES IDS
 				for(var i = 0; i < specs.length; i++){
 					spec = specs[i];
-					spec.id = i;
 					if(!childSuites.hasOwnProperty(spec.suite.getFullName()) ){
-						spec.suite.id = ++suites;
 						childSuites[ spec.suite.getFullName() ] = spec.suite;
 					}
 				}
-				childSpecs = specs;
+				childSpecs = specs; // parentRunner will return this array
 	
 				if(!!oMethods.reportRunnerStarting){
-					oMethods.reportRunnerStarting.call(reporter, parentRunner);
-					var q = document.getElementById('HTMLReporter'),
-						o = document.getElementById('isolated-test-workarea');
-					if(q){
-						o.appendChild(q.parentNode.removeChild(q));
-					}
+					oMethods.reportRunnerStarting.call(reporter, parentRunner, startedAt);
 				}
 				var a;
 				// clean reporter
 				// build queue
 				buildQueue();
-				
-				for(var i = 0; i < queue.length; i++){
-					a = queue[i];
-					method = a[0];
-					args = a[1];
 	
-					if(!!oMethods[ method ]){
-						oMethods[ method ].apply(reporter, args);
-					}
+				for(var i = 0; i < queue.length; i++){
+					try{
+						a = queue[i];
+						method = a[0];
+						args = a[1];
+						if(!!oMethods[ method ]){
+							oMethods[ method ].apply(reporter, args);
+						}
+					}catch(e){}
 				}
 	
 				if(!!oMethods.reportRunnerResults){
@@ -256,13 +416,12 @@ SOFTWARE.
 			};
 	
 		}
-		
+	
 		return fixReporter;
-		
+	
 	});
 	
-	
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\jasmine-html-isolated.js
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\jasmine-html-isolated.js
 	/* jshint ignore:start */
 	define('/__jasmine-alone__/jasmine-html-isolated', [], function() {
 	
@@ -297,7 +456,13 @@ SOFTWARE.
 		HtmlReporterHelpers.getSpecStatus = function(child) {
 			var results = child.results();
 			var status = results.passed() ? 'passed' : 'failed';
-			if (results.skipped) {
+			if(results.totalCount === 0 &&
+				results.passedCount === 0 &&
+				results.failedCount === 0)
+			{
+				status = 'empty';
+			}
+			if (!!child.skipped) {
 				status = 'skipped';
 			}
 	
@@ -337,7 +502,11 @@ SOFTWARE.
 			// Jasmine Reporter Public Interface
 			self.logRunningSpecs = false;
 	
-			self.reportRunnerStarting = function(runner) {
+			self.reportRunnerStarting = function(runner, timeStart) {
+				var o = document.getElementById('HTMLReporter');
+				if(!!o){
+					o.parentNode.removeChild(o);
+				}
 				var specs = runner.specs() || [];
 	
 				if (specs.length == 0) {
@@ -345,14 +514,14 @@ SOFTWARE.
 				}
 	
 				createReporterDom(runner.env.versionString());
-				var o = document.getElementById('HTMLReporter');
-				if(!!o){
-					o.parentNode.removeChild(o);
+				if(!this.toBody){
+					document.getElementById('isolated-test-workarea').appendChild(dom.reporter);
+				} else {
+					doc.body.appendChild(dom.reporter);
 				}
-				document.getElementById('isolated-test-workarea').appendChild(dom.reporter);
 				setExceptionHandling();
 	
-				reporterView = new HtmlReporter.ReporterView(dom);
+				reporterView = new HtmlReporter.ReporterView(dom, timeStart);
 				reporterView.addSpecs(specs, self.specFilter);
 			};
 	
@@ -365,9 +534,6 @@ SOFTWARE.
 			};
 	
 			self.reportSpecStarting = function(spec) {
-				if (self.logRunningSpecs) {
-					self.log('>> Jasmine Running ' + spec.suite.description + ' ' + spec.description + '...');
-				}
 			};
 	
 			self.reportSpecResults = function(spec) {
@@ -386,11 +552,12 @@ SOFTWARE.
 			};
 	
 			self.specFilter = function(spec) {
-				if (!focusedSpecName()) {
+			/*	if (!focusedSpecName()) {
 					return true;
 				}
 	
-				return spec.getFullName().indexOf(focusedSpecName()) === 0;
+				return spec.getFullName().indexOf(focusedSpecName()) === 0;*/
+				return false;
 			};
 	
 			return self;
@@ -516,8 +683,8 @@ SOFTWARE.
 			return link;
 		};
 		HtmlReporterHelpers.addHelpers(HtmlReporter);
-		HtmlReporter.ReporterView = function(dom) {
-			this.startedAt = new Date();
+		HtmlReporter.ReporterView = function(dom, timeStart) {
+			this.startedAt = !!timeStart ? timeStart : new Date();
 			this.runningSpecCount = 0;
 			this.completeSpecCount = 0;
 			this.passedCount = 0;
@@ -528,7 +695,7 @@ SOFTWARE.
 				this.resultsMenu = this.createDom('span', {className: 'resultsMenu bar'},
 				this.summaryMenuItem = this.createDom('a', {className: 'summaryMenuItem', href: "#"}, '0 specs'),
 						' | ',
-						this.detailsMenuItem = this.createDom('a', {className: 'detailsMenuItem', href: "#"}, '0 failing'));
+						this.detailsMenuItem = this.createDom('span', {className: 'detailsMenuItem', href: "#"}, '0 failing'));
 	
 				this.summaryMenuItem.onclick = function() {
 					dom.reporter.className = dom.reporter.className.replace(/ showDetails/g, '');
@@ -549,9 +716,11 @@ SOFTWARE.
 	
 				for (var i = 0; i < specs.length; i++) {
 					var spec = specs[i];
-					this.views.specs[spec.id] = new HtmlReporter.SpecView(spec, dom, this.views);
+					if(!this.views.specs[spec.id]){
+						this.views.specs[spec.id] = new HtmlReporter.SpecView(spec, dom, this.views);
+					}
 					if (specFilter(spec)) {
-						this.runningSpecCount++;
+						// this.runningSpecCount++;
 					}
 				}
 			};
@@ -574,10 +743,12 @@ SOFTWARE.
 						this.failedCount++;
 						break;
 	
+					case 'empty':
 					case 'skipped':
 						this.skippedCount++;
 						break;
 				}
+				this.runningSpecCount++;
 	
 				specView.refresh();
 				this.refresh();
@@ -606,7 +777,7 @@ SOFTWARE.
 	
 				// skipped specs UI
 				if (isUndefined(this.skippedAlert)) {
-					this.skippedAlert = this.createDom('a', {href: HtmlReporter.sectionLink(), className: "skippedAlert bar"});
+					this.skippedAlert = this.createDom('span', {href: HtmlReporter.sectionLink(), className: "skippedAlert bar"});
 				}
 	
 				this.skippedAlert.innerHTML = "Skipping " + this.skippedCount + " of " + specPluralizedFor(this.totalSpecCount) + " - run all";
@@ -640,7 +811,7 @@ SOFTWARE.
 			this.complete = function() {
 				dom.alert.removeChild(this.runningAlert);
 	
-				this.skippedAlert.innerHTML = "Ran " + this.runningSpecCount + " of " + specPluralizedFor(this.totalSpecCount) + " - run all";
+				this.skippedAlert.innerHTML = "Skipped " + this.skippedCount + " of " + specPluralizedFor(this.totalSpecCount) + " - run all";
 	
 				if (this.failedCount === 0) {
 					dom.alert.appendChild(this.createDom('span', {className: 'passingAlert bar'}, "Passing " + specPluralizedFor(this.passedCount)));
@@ -686,6 +857,9 @@ SOFTWARE.
 			this.views = views;
 	
 			this.symbol = this.createDom('li', {className: 'pending'});
+			var a = this.createDom('a', {});
+			this.symbol.appendChild(a);
+			a.href = '#spec_' + spec.id;
 			this.dom.symbolSummary.appendChild(this.symbol);
 	
 			this.summary = this.createDom('div', {className: 'specSummary'},
@@ -697,6 +871,8 @@ SOFTWARE.
 			}, this.spec.description)
 					);
 	
+			this.summary.id = 'spec_' + spec.id;
+	
 			this.detail = this.createDom('div', {className: 'specDetail'},
 			this.createDom('a', {
 				className: 'description',
@@ -705,6 +881,21 @@ SOFTWARE.
 				title: this.spec.getFullName()
 			}, this.spec.getFullName())
 					);
+	
+			var me = this;
+			a.onclick = function(){
+				var c = me.summary.className;
+				me.summary.className += ' highlighted';
+				setTimeout(function(){
+					me.summary.className = c;
+				}, 4000);
+			};
+			a.onmouseover = function(){
+				me.summary.className += ' highlighted';
+			};
+			a.onmouseout = function(){
+				me.summary.className = me.summary.className.replace('highlighted', '').trim();
+			};
 		};
 	
 		HtmlReporter.SpecView.prototype.status = function() {
@@ -715,7 +906,11 @@ SOFTWARE.
 			this.symbol.className = this.status();
 	
 			switch (this.status()) {
+				case 'empty':
+					this.appendSummaryToSuiteDiv();
+				break;
 				case 'skipped':
+					this.appendSummaryToSuiteDiv();
 					break;
 	
 				case 'passed':
@@ -768,7 +963,7 @@ SOFTWARE.
 	
 			this.element = this.createDom('div', {className: 'suite'},
 			this.createDom('a', {
-				className: 'description', 
+				className: 'description',
 				target: '_blank',
 				href: HtmlReporter.sectionLink(this.suite.getFullName()) + (!!this.suite.getSpecFile ? '&specFile=' + encodeURIComponent(this.suite.getSpecFile()) : '')
 			}, this.suite.description)
@@ -787,228 +982,21 @@ SOFTWARE.
 	
 		HtmlReporterHelpers.addHelpers(HtmlReporter.SuiteView);
 	
-		/* @deprecated Use HtmlReporter instead
-		 */
-		var TrivialReporter = function(doc) {
-			this.document = doc || document;
-			this.suiteDivs = {};
-			this.logRunningSpecs = false;
-		};
-	
-		TrivialReporter.prototype.createDom = function(type, attrs, childrenVarArgs) {
-			var el = document.createElement(type);
-	
-			for (var i = 2; i < arguments.length; i++) {
-				var child = arguments[i];
-	
-				if (typeof child === 'string') {
-					el.appendChild(document.createTextNode(child));
-				} else {
-					if (child) {
-						el.appendChild(child);
-					}
-				}
-			}
-	
-			for (var attr in attrs) {
-				if (attr == "className") {
-					el[attr] = attrs[attr];
-				} else {
-					el.setAttribute(attr, attrs[attr]);
-				}
-			}
-	
-			return el;
-		};
-	
-		TrivialReporter.prototype.reportRunnerStarting = function(runner) {
-			var showPassed, showSkipped;
-	
-			this.outerDiv = this.createDom('div', {id: 'TrivialReporter', className: 'jasmine_reporter'},
-			this.createDom('div', {className: 'banner'},
-			this.createDom('div', {className: 'logo'},
-			this.createDom('span', {className: 'title'}, "Jasmine"),
-					this.createDom('span', {className: 'version'}, runner.env.versionString())),
-					this.createDom('div', {className: 'options'},
-					"Show ",
-							showPassed = this.createDom('input', {id: "__jasmine_TrivialReporter_showPassed__", type: 'checkbox'}),
-					this.createDom('label', {"for": "__jasmine_TrivialReporter_showPassed__"}, " passed "),
-							showSkipped = this.createDom('input', {id: "__jasmine_TrivialReporter_showSkipped__", type: 'checkbox'}),
-					this.createDom('label', {"for": "__jasmine_TrivialReporter_showSkipped__"}, " skipped")
-							)
-					),
-					this.runnerDiv = this.createDom('div', {className: 'runner running'},
-					this.createDom('a', {className: 'run_spec', href: '?'}, "run all"),
-							this.runnerMessageSpan = this.createDom('span', {}, "Running..."),
-							this.finishedAtSpan = this.createDom('span', {className: 'finished-at'}, ""))
-					);
-	
-			this.document.body.appendChild(this.outerDiv);
-	
-			var suites = runner.suites();
-			for (var i = 0; i < suites.length; i++) {
-				var suite = suites[i];
-				var suiteDiv = this.createDom('div', {className: 'suite'},
-				this.createDom('a', {
-					className: 'run_spec', 
-					target: '_blank',
-					href: '?spec=' + encodeURIComponent(suite.getFullName()) + (!!suite.getSpecFile ? '&specFile=' + encodeURIComponent(suite.getSpecFile()) : '')
-				}, "run"),
-						this.createDom('a', {
-							className: 'description', 
-							target: '_blank',
-							href: '?spec=' + encodeURIComponent(suite.getFullName()) + (!!suite.getSpecFile ? '&specFile=' + encodeURIComponent(suite.getSpecFile()) : '')
-						}, suite.description));
-				this.suiteDivs[suite.id] = suiteDiv;
-				var parentDiv = this.outerDiv;
-				if (suite.parentSuite) {
-					parentDiv = this.suiteDivs[suite.parentSuite.id];
-				}
-				parentDiv.appendChild(suiteDiv);
-			}
-	
-			this.startedAt = new Date();
-	
-			var self = this;
-			showPassed.onclick = function(evt) {
-				if (showPassed.checked) {
-					self.outerDiv.className += ' show-passed';
-				} else {
-					self.outerDiv.className = self.outerDiv.className.replace(/ show-passed/, '');
-				}
-			};
-	
-			showSkipped.onclick = function(evt) {
-				if (showSkipped.checked) {
-					self.outerDiv.className += ' show-skipped';
-				} else {
-					self.outerDiv.className = self.outerDiv.className.replace(/ show-skipped/, '');
-				}
-			};
-		};
-	
-		TrivialReporter.prototype.reportRunnerResults = function(runner) {
-			var results = runner.results();
-			var className = (results.failedCount > 0) ? "runner failed" : "runner passed";
-			this.runnerDiv.setAttribute("class", className);
-			//do it twice for IE
-			this.runnerDiv.setAttribute("className", className);
-			var specs = runner.specs();
-			var specCount = 0;
-			for (var i = 0; i < specs.length; i++) {
-				if (this.specFilter(specs[i])) {
-					specCount++;
-				}
-			}
-			var message = "" + specCount + " spec" + (specCount == 1 ? "" : "s") + ", " + results.failedCount + " failure" + ((results.failedCount == 1) ? "" : "s");
-			message += " in " + ((new Date().getTime() - this.startedAt.getTime()) / 1000) + "s";
-			this.runnerMessageSpan.replaceChild(this.createDom('a', {className: 'description', href: '?'}, message), this.runnerMessageSpan.firstChild);
-	
-			this.finishedAtSpan.appendChild(document.createTextNode("Finished at " + new Date().toString()));
-		};
-	
-		TrivialReporter.prototype.reportSuiteResults = function(suite) {
-			var results = suite.results();
-			var status = results.passed() ? 'passed' : 'failed';
-			if (results.totalCount === 0) { // todo: change this to check results.skipped
-				status = 'skipped';
-			}
-			this.suiteDivs[suite.id].className += " " + status;
-		};
-	
-		TrivialReporter.prototype.reportSpecStarting = function(spec) {
-			if (this.logRunningSpecs) {
-				this.log('>> Jasmine Running ' + spec.suite.description + ' ' + spec.description + '...');
-			}
-		};
-	
-		TrivialReporter.prototype.reportSpecResults = function(spec) {
-			var results = spec.results();
-			var status = results.passed() ? 'passed' : 'failed';
-			if (results.skipped) {
-				status = 'skipped';
-			}
-			var specDiv = this.createDom('div', {className: 'spec ' + status},
-			this.createDom('a', {
-				className: 'run_spec', 
-				target: '_blank',
-				href: '?spec=' + encodeURIComponent(spec.getFullName()) + (!!spec.getSpecFile ? '&specFile=' + encodeURIComponent(spec.getSpecFile()) : '')
-			}, "run"),
-					this.createDom('a', {
-						className: 'description',
-						target: '_blank',
-						href: '?spec=' + encodeURIComponent(spec.getFullName()) + (!!spec.getSpecFile ? '&specFile=' + encodeURIComponent(spec.getSpecFile()) : ''),
-						title: spec.getFullName()
-					}, spec.description));
-	
-	
-			var resultItems = results.getItems();
-			var messagesDiv = this.createDom('div', {className: 'messages'});
-			for (var i = 0; i < resultItems.length; i++) {
-				var result = resultItems[i];
-	
-				if (result.type == 'log') {
-					messagesDiv.appendChild(this.createDom('div', {className: 'resultMessage log'}, result.toString()));
-				} else if (result.type == 'expect' && result.passed && !result.passed()) {
-					messagesDiv.appendChild(this.createDom('div', {className: 'resultMessage fail'}, result.message));
-	
-					if (result.trace.stack) {
-						messagesDiv.appendChild(this.createDom('div', {className: 'stackTrace'}, result.trace.stack));
-					}
-				}
-			}
-	
-			if (messagesDiv.childNodes.length > 0) {
-				specDiv.appendChild(messagesDiv);
-			}
-	
-			this.suiteDivs[spec.suite.id].appendChild(specDiv);
-		};
-	
-		TrivialReporter.prototype.log = function() {
-			var console = jasmine.getGlobal().console;
-			if (console && console.log) {
-				if (console.log.apply) {
-					console.log.apply(console, arguments);
-				} else {
-					console.log(arguments); // ie fix: console.log.apply doesn't exist on ie
-				}
-			}
-		};
-	
-		TrivialReporter.prototype.getLocation = function() {
-			return this.document.location;
-		};
-	
-		TrivialReporter.prototype.specFilter = function(spec) {
-			var paramMap = {};
-			var params = this.getLocation().search.substring(1).split('&');
-			for (var i = 0; i < params.length; i++) {
-				var p = params[i].split('=');
-				paramMap[decodeURIComponent(p[0])] = decodeURIComponent(p[1]);
-			}
-	
-			if (!paramMap.spec) {
-				return true;
-			}
-			return spec.getFullName().indexOf(paramMap.spec) === 0;
-		};
-	
 		return HtmlReporter;
 	});
 	/* jshint ignore:end */
 	
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\printer.js
-	/* 
-	 * 
-	 *  @overview 
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\printer.js
+	/*
+	 *
+	 *  @overview
 	 *  @author Daniel Goberitz <dalgo86@gmail.com>
-	 * 
+	 *
 	 */
 	
 	define('/__jasmine-alone__/printer', [], function(){
 		'use strict';
-		
+	
 		function printReporter(reporter) {
 			var txt = '';
 	
@@ -1017,7 +1005,7 @@ SOFTWARE.
 			}
 	
 	
-			if (!!reporter && reporter instanceof jasmine.JsApiReporter) {
+			if (!!reporter) {
 				var results = reporter.results();
 				var suites = reporter.suites();
 				var i;
@@ -1059,7 +1047,11 @@ SOFTWARE.
 					for (i in result.messages) {
 						if (result.messages.hasOwnProperty(i)) {
 							m = result.messages[i];
-							txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
+							if(m.actual === undefined && m.matcherName  === undefined && m.expected === undefined){
+								txt += '\n' + tabs + '\t' + m.message + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+							}else{
+								txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+							}
 						}
 					}
 				}
@@ -1077,29 +1069,28 @@ SOFTWARE.
 	
 			}
 		}
-		
+	
 		return printReporter;
 	});
 	
-	
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\route.js
-	/* 
-	 * 
-	 *  @overview 
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\route.js
+	/*
+	 *
+	 *  @overview
 	 *  @author Daniel Goberitz <dalgo86@gmail.com>
-	 * 
+	 *
 	 */
 	
 	define('/__jasmine-alone__/route', [], function(){
-		
+	
 		'use strict';
-		
+	
 		function s(){
 			return window.location.search.toString();
 		};
 	
 		var route = {
-			
+	
 			getCurrentSpecFile: function(){
 				var m = s().match(/[?&]specFile=([^&]*)/);
 				return (m !== null && !!m[1]) ? decodeURIComponent(m[1]) : false;
@@ -1107,45 +1098,44 @@ SOFTWARE.
 	
 			getURLForSpec: function(specFile){
 				var l = window.location;
-				return l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + l.pathname + 
+				return l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + l.pathname +
 					'?specFile=' + encodeURIComponent(specFile)
 				;
 			},
-			
+	
 			isWholeSuite: function(){
 				return s().match(/[?&]whole/) !== null;
 			},
-			
+	
 			isAlone: function(){
 				return s().match(/[?&]specFile=/) !== null;
 			},
-			
+	
 			isAutoStart: function(){
-				return (undefined !== window.ISOLATED_AUTOSTART) ? 
-					window.ISOLATED_AUTOSTART : 
+				return (undefined !== window.ISOLATED_AUTOSTART) ?
+					window.ISOLATED_AUTOSTART :
 					s().match(/[?&]autostart=false/) === null
 				;
 			}
 		};
-		
+	
 		return route;
 	});
 	
-	
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\tests.js
-	/* 
-	 * 
-	 *  @overview 
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\tests.js
+	/*
+	 *
+	 *  @overview
 	 *  @author Daniel Goberitz <dalgo86@gmail.com>
-	 * 
+	 *
 	 */
 	
 	define('/__jasmine-alone__/tests', ['/__jasmine-alone__/route', '/__jasmine-alone__/Test'], function(route, Test){
-		
+	
 		'use strict';
-		
+	
 		var tests = {
-			
+	
 			_testsById: null,
 			_testsBySpec: null,
 			_tests: null,
@@ -1159,15 +1149,15 @@ SOFTWARE.
 					this._add(new Test(specsLists[i], this));
 				}
 			},
-			
+	
 			setRunner: function(runner){
 				this._runner = runner;
 			},
-			
+	
 			getRunner: function(){
 				return this._runner;
 			},
-			
+	
 			_clean: function(){
 				this._testsById = {};
 				this._testsBySpec = {};
@@ -1191,7 +1181,7 @@ SOFTWARE.
 				this._log('Loading: ' + testObj.getSpecFile());
 		 		parent.appendChild(testObj.getElement());
 			},
-			
+	
 			// IFRAMES INDEXES METHODS
 	
 			getLength: function(){
@@ -1199,27 +1189,27 @@ SOFTWARE.
 			},
 	
 			/**
-			 * 
+			 *
 			 * @param {Int} ix
 			 * @returns {Test}
 			 */
 			getIndex: function(ix){
 				return this._tests[ix];
 			},
-			
+	
 			getTests: function(){
 				return this._tests;
 			},
-			
+	
 			getTestBySpec: function(specFile){
 				return (!!this._testsBySpec[specFile]) ? this._testsBySpec[specFile] : false;
 			},
-			
+	
 			getTestById: function(id){
 				return (!!this._testsBySpec[id]) ? this._testsBySpec[id] : false;
 			},
-			
-			
+	
+	
 			// Private Methods
 	
 	
@@ -1241,47 +1231,88 @@ SOFTWARE.
 			_log: function(){
 				// @todo TODO console safe null
 				window.console.log(Array.prototype.join.call(arguments, ' '));
+			},
+	
+			isTimeOut: function(){
+				var timeOut = false;
+				for(var i = 0; i < this._tests.length; i++){
+					if(this._tests[i].isTimeOut()){
+						timeOut = true;
+						break;
+					}
+				}
+				return timeOut;
+			},
+	
+			isFailed: function(){
+				var failed = false;
+				for(var i = 0; i < this._tests.length; i++){
+					if(this._tests[i].isPassed() !== true && this._tests[i].isPassed() !== undefined){
+						failed = true;
+						break;
+					}
+				}
+				return failed;
 			}
 		};
-		
+	
 		return tests;
 	});
 	
-	
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\jasmine-alone.css
-	!(function(){
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\jasmine-alone.css
+	!(function() {
 		var s = document.createElement('style');
 		s.setAttribute('type', 'text/css');
-		s.innerHTML = "html, body, #isolatedTests{\n\twidth: 100%;\n\theight: 100%;\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\n.isolated-test-list{\n\twidth: 30%;\n\tfloat: left;\n\theight: 100%;\n\toverflow: auto;\n\tbackground-color: #222;\n\tmargin: 0;\n\tpadding: 0;\n}\n\n.isolated-test-list dd{\n\tborder-top: solid 1px #777;\n\t-webkit-transition: background 500ms;\n\t-moz-transition: background 500ms;\n\t-ms-transition: background 500ms;\n\t-o-transition: background 500ms;\n\ttransition: background 500ms;\n}\n\n.isolated-test-list dd,\n.isolated-test-list dt{\n\tpadding: 0px 10px;\n\tmargin: 0;\n\tbackground-color: #444;\n\tcolor: #f1f1f1;\n\tline-height: 30px;\n\tclear: both;\n\tborder-bottom: solid 1px #222;\n}\n\n.isolated-test-list dt.path{\n\tbackground: #222;\n}\n\n.isolated-test-list dd:hover{\n\tbackground-color: #666;\n}\n\n.isolated-test-list button{\n\tfloat: right;\n\ttop: 1px;\n\tposition: relative;\n}\n\n.isolated-test-list button,\n.isolated-test-list a{\n\tcursor: pointer;\n}\n.isolated-test-list button[disabled]{\n\topacity: .6;\n\tcursor: default;\n}\n.isolated-test-list dd.running button[disabled]{\n\tcursor: inherit;\n}\n\n.isolated-test-list button,\n.isolated-test-list a,\n.isolated-test-list dd a:visited{\n\tcolor: #f1f1f1;\n\tline-height: 26px;\n\n\ttext-decoration: none;\n}\n\nbutton#isolated-controls-run,\n.isolated-test-list dd button{\n\tborder: none;\n\tpadding: 0px 10px 0px 26px;\n\tline-height: 25px;\n\tbackground: \n\t\t#222 \n\t\turl(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)\n\t\tno-repeat\n\t\t5px 5px\n\t\t;\n}\n\n.isolated-test-list dt h1{\n\tfont-size: 22px;\n}\n.isolated-test-list dt{\n\tpadding-left: 20px;\n}\n.isolated-test-list dt button,\n.isolated-test-list dt h1{\n\tdisplay: inline;\n\tline-height: 45px;\n}\n\n.isolated-test-list dd{\n\n\tborder-left: solid 10px #222;\n\n\t-webkit-transition: border-left-color 500ms;\n\t-moz-transition: border-left-color 500ms;\n\t-ms-transition: border-left-color 500ms;\n\t-o-transition: border-left-color 500ms;\n\ttransition: border-left-color 500ms;\n}\n\n.isolated-test-list dd.failed{\n\tborder-left-color: #b41b1b;\n}\n\n.isolated-test-list dd.passed{\n\tborder-left-color: #1bb41b;\n}\n\n.isolated-test-list dd.running{\n\tborder-left-color: #1bb4af;\n\tcursor: progress;\n\n\t-webkit-animation-name: running;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: running;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-workarea{\n\twidth: 70%;\n\theight: 100%;\n\toverflow: auto;\n\tfloat: right;\n\tposition: relative;\n}\n\n.isolated-test-workarea iframe{\n\twidth: 100%;\n\tborder: 0;\n}\n.isolated-test-workarea iframe.running{\n\tcursor: wait;\n}\n\niframe#isolated-tests-iframe{\n\tmin-height: 90%;\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n}";
+		s.innerHTML = "html, body, #isolatedTests{\n\twidth: 100%;\n\theight: 100%;\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\nbody.jasmine-alone-whole,\nbody.jasmine-alone-whole #isolatedTests{\n\toverflow: auto;\n}\n\n.isolated-test-list{\n\twidth: 30%;\n\tfloat: left;\n\theight: 100%;\n\toverflow: auto;\n\tbackground-color: #222;\n\tmargin: 0;\n\tpadding: 0;\n\tposition: relative;\n\tz-index: 2;\n}\n\n.isolated-test-list.passed{\n\tbox-shadow: 0px 0px 40px 5px #1bb41b\n}\n\n.isolated-test-list.failed{\n\tbox-shadow: 0px 0px 40px 5px #b41b1b\n}\n\n.isolated-test-list.timeout{\n\tbox-shadow: 0px 0px 40px 5px #E88809\n}\n\n.isolated-test-list dd{\n\tborder-top: solid 1px #777;\n\t-webkit-transition: background 500ms;\n\t-moz-transition: background 500ms;\n\t-ms-transition: background 500ms;\n\t-o-transition: background 500ms;\n\ttransition: background 500ms;\n}\n\n.isolated-test-list dd,\n.isolated-test-list dt{\n\tpadding: 0px 10px;\n\tmargin: 0;\n\tbackground-color: #444;\n\tcolor: #f1f1f1;\n\tline-height: 30px;\n\tclear: both;\n\tborder-bottom: solid 1px #222;\n}\n\n.isolated-test-list dt.path{\n\tbackground: #222;\n}\n\n.isolated-test-list dd:hover{\n\tbackground-color: #666;\n}\n\n.isolated-test-list button{\n\tfloat: right;\n\ttop: 1px;\n\tposition: relative;\n}\n\n.isolated-test-list button,\n.isolated-test-list a{\n\tcursor: pointer;\n}\n.isolated-test-list button[disabled]{\n\topacity: .6;\n\tcursor: default;\n}\n.isolated-test-list dd.running button[disabled]{\n\tcursor: inherit;\n}\n\n.isolated-test-list button,\n.isolated-test-list a,\n.isolated-test-list dd a:visited{\n\tcolor: #f1f1f1;\n\tline-height: 26px;\n\n\ttext-decoration: none;\n}\n\nbutton#isolated-controls-run,\n.isolated-test-list dd button{\n\tborder: none;\n\tpadding: 0px 10px 0px 26px;\n\tline-height: 25px;\n\tbackground:\n\t\t#222\n\t\turl(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)\n\t\tno-repeat\n\t\t5px 5px\n\t\t;\n}\n\n.isolated-test-list dt h1{\n\tfont-size: 22px;\n}\n.isolated-test-list dt{\n\tpadding-left: 20px;\n}\n.isolated-test-list dt button,\n.isolated-test-list dt h1{\n\tdisplay: inline;\n\tline-height: 45px;\n}\n\n.isolated-test-list dd{\n\n\tborder-left: solid 10px #222;\n\n\t-webkit-transition: border-left-color 500ms;\n\t-moz-transition: border-left-color 500ms;\n\t-ms-transition: border-left-color 500ms;\n\t-o-transition: border-left-color 500ms;\n\ttransition: border-left-color 500ms;\n}\n\n.isolated-test-list dd.failed{\n\tborder-left-color: #b41b1b;\n}\n.isolated-test-list dd.failed.timeout{\n\tborder-left-color: #E88809;\n\tbackground: #7B664B;\n}\n\n.isolated-test-list dd.passed{\n\tborder-left-color: #1bb41b;\n}\n\n.isolated-test-list dd.loading{\n\tborder-left-color: orange;\n\tcursor: progress;\n\n\t-webkit-animation-name: loading;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: loading;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-list dd.running{\n\tborder-left-color: #1bb4af;\n\tcursor: progress;\n\n\t-webkit-animation-name: running;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: running;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-workarea{\n\twidth: 69%;\n\theight: 100%;\n\toverflow: auto;\n\tfloat: right;\n\tposition: relative;\n}\n\n.isolated-test-workarea iframe{\n\twidth: 100%;\n\tborder: 0;\n}\n.isolated-test-workarea iframe.running{\n\tcursor: wait;\n}\n\niframe#isolated-tests-iframe{\n\tmin-height: 90%;\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n}\n\n@keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n@-webkit-keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n.time-counter{color: #888;}\n\nbody.timeout, body.timeout #HTMLReporter{\n\tbackground: #fff0cc !important;\n}\n\n#HTMLReporter .summary .suite.skipped,\n\n#HTMLReporter .summary .suite.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n\n#HTMLReporter .summary .specSummary.highlighted{\n\t-webkit-animation-name: highlight;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: highlight;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n#HTMLReporter .summary .specSummary.skipped,\n#HTMLReporter .summary .specSummary.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n#HTMLReporter .skippedAlert.bar{\n\tbackground: rgba(232, 136, 9, 1);\n}\n#HTMLReporter .skippedAlert.bar:hover{\n\ttext-decoration: none;\n}\n\n#HTMLReporter .symbolSummary li.empty:before{\n\tcolor: #bababa;\n\tcontent: \"\\02717\";\n}\n#HTMLReporter .symbolSummary li.skipped:before{\n\tcolor: #E88809;\n\tcontent: \"\\02717\";\n}\ndiv#isolatedTests div#HTMLReporter .symbolSummary li.failed{\n\tline-height: inherit;\n}\n#HTMLReporter .symbolSummary li.failed:before{\n\tcontent: \"\\02717\";\n}\n\n#HTMLReporter .symbolSummary li.passed:before{\n\tcontent: \"\\02713\";\n\n}\n\n#HTMLReporter .symbolSummary li{\n\theight: 14px;\n\twidth: 18px;\n\tfont-size: 20px !important;\n\tposition: relative;\n}\n\n#HTMLReporter .symbolSummary li a{\n\tposition: absolute;\n\twidth: 100%;\n\theight: 100%;\n\tdisplay: block;\n\ttop: 0;\n\tleft: 0;\n}";
 		document.head.appendChild(s);
 	}());
 	
 	
-	// ** @file E:\DEVEL\JasmineAlone\sources\src\jasmine-alone.js
-	/* 
-	 * 
-	 *  @overview 
+	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\jasmine-alone.js
+	/*
+	 *
+	 *  @overview
 	 *  @author Daniel Goberitz <dalgo86@gmail.com>
-	 * 
+	 *
 	 */
 	/* global jasmine: true, document: true, window: true, define: true */
 	define([
-		'/__jasmine-alone__/route', 
-		'/__jasmine-alone__/tests', 
-		'/__jasmine-alone__/printer', 
+		'/__jasmine-alone__/route',
+		'/__jasmine-alone__/tests',
+		'/__jasmine-alone__/printer',
 		'/__jasmine-alone__/fixReporter',
-		'/__jasmine-alone__/jasmine-html-isolated'
+		'/__jasmine-alone__/jasmine-html-isolated',
+		'/__jasmine-alone__/fixJasmineXit'
 	], function(
-		route, 
-		tests, 
-		printReporter, 
+		route,
+		tests,
+		printReporter,
 		fixReporter,
 		HtmlReporter
 	){
 	
 		'use strict';
-		
-		var DEFAULT_WATCHDOG = 60000;
+	
+		var DEFAULT_WATCHDOG = 60000,
+			DEFAULT_DUMB_PREVENTER_WATCHDOG = 3000
+		;
+	
+		function addClass(e, className){
+			if(e.className.indexOf(className) === -1){
+				e.className = e.className === '' ? className : e.className + ' ' + className;
+			}
+		}
+	
+		function removeClass(e, className){
+			if(e.className.indexOf(className) !== -1){
+				if(e.className === className){
+					e.className = '';
+				} else {
+					var regx = new RegExp('[\s]?' + className + '[\s]?', 'g');
+					e.className = e.className.replace(regx, '');
+				}
+			}
+		}
 	
 		function defineIsolatedRunner(){ // because lint
 			var isolatedRunner = {
@@ -1293,20 +1324,22 @@ SOFTWARE.
 				_reporter: null,
 	
 				// DOM PROPERTIES
-				_iframe: null,
+				_testWindow: null,
 				_specList: null,
 				_runAllBtn: null,
 				_isRunningInIframe: null,
-				
+	
 				_setUp: function(){
-					this._parentWindow = window.parent;
-					if(this._parentWindow !== window){
+	//				this._parentWindow = window.parent;
+					this._parentWindow = window.opener;
+					if(!!this._parentWindow && this._parentWindow !== window){
 						if(!!this._parentWindow.isolatedRunner){
 							this._isRunningInIframe = true;
 						}
 					}
-					
+	
 					this._childSpecsObjectsBySpecFile = {};
+					this._idsForSpecNSuites = [];
 				},
 	
 				init: function(){
@@ -1314,13 +1347,16 @@ SOFTWARE.
 						this._hackJasmine();
 	
 						if(route.isAlone()){ // iframe mode
+							document.body.className += ' jasmine-alone-whole';
 							this._prepareAlone();
 						}else{
 							this._prepareIsolated();
 						}
-						
+	
 						return true;
 					}else{
+						this.WHOLE = true;
+						document.body.className += ' jasmine-alone-whole';
 						return false;
 					}
 				},
@@ -1331,16 +1367,55 @@ SOFTWARE.
 				 */
 				runAll: function(){
 					if(!route.isAlone()){
-						this._runAllBtn.setAttribute('disabled', 'disabled');
-						this._onFinish = this._onFinishIsolatedAllMode;
+						this._finished = false;
 	
+						this._runAllBtn.setAttribute('disabled', 'disabled');
+						this._onFinish = this._onFinishIsolatedMode;
+	
+						var me = this;
+						clearInterval(this._runAllInterval);
+						this._runAllInterval = setInterval(function(){
+							me._tick();
+						}, 10);
+	
+						this._nextReadyToBeExecuted = true;
 						this._ix = -1;
-						this._next();
-					}else{
+					} else {
 						throw new Error('Trying to execute all specs in alone mode! Avoiding inifite recursion');
 					}
 				},
-				
+	
+				_tick: function(){
+					if(this._nextReadyToBeExecuted){
+						this._next();
+					}
+				},
+	
+				_processLastExecutedSpec: function(){
+					var test = this.getCurrentTestObj(),
+						reporter,
+						childRunner,
+						specFile
+					;
+					if(!!test){ // first execution there is no test!
+						reporter = test.getReporter();
+						childRunner = test.getChildRunner();
+						specFile = test.getSpecFile();
+	
+						if(!!reporter){
+							this._printReporter(reporter);
+							this._checkIsPassed(reporter, specFile);
+						} else {
+							this._failed = true;
+							test.onFinish(false);
+						}
+	
+						if(!!childRunner){
+							this._addChildSpecs(specFile, childRunner);
+						}
+					}
+				},
+	
 				/**
 				 * Execute the suite when is in Alone mode, that is execute just one spec
 				 * must be called from the html runner
@@ -1358,7 +1433,7 @@ SOFTWARE.
 					}else{
 						if(route.isAlone()){
 							this._onFinish = this._onFinishAloneMode;
-							
+	
 							require(this._specs, function(){
 								me._executeBeforeExecuteTests();
 	
@@ -1367,8 +1442,11 @@ SOFTWARE.
 									jasmine.getEnv().addReporter(me.getExternalReporter());
 								}
 								me._executeJasmine();
+	
+								me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 							});
 						}else{
+							this._onFinish = this._onFinishIsolatedMode;
 							if(route.isAutoStart()){
 								this.runAll();
 							}
@@ -1376,28 +1454,29 @@ SOFTWARE.
 					}
 				},
 	
+	
 				/**
 				 * Sets the specs list from outside if is necessary
-				 * 
+				 *
 				 * @param {Array.<String>} specsList
 				 */
 				setSpecs: function(specsList){
 					this._specs = specsList;
 				},
-				
+	
 				beforeExecuteTests: function(cbk){
 					if(undefined === this._beforeExecuteTests){
 						this._beforeExecuteTests = [];
 					}
 					this._beforeExecuteTests.push(cbk);
 				},
-				
+	
 				_executeBeforeExecuteTests: function(){
 					if(!!this._beforeExecuteTests && this._beforeExecuteTests.length > 0){
 						var i, cbk;
 						for(i = 0; i < this._beforeExecuteTests.length; i++){
 							cbk = this._beforeExecuteTests[i];
-							if(!!cbk && !!cbk.constructor && cbk.constructor.toLowerCase() === 'function'){
+							if(!!cbk && !!cbk.constructor && cbk.constructor.name.toLowerCase() === 'function'){
 								try{
 									cbk.call();
 								}catch(e){
@@ -1413,6 +1492,8 @@ SOFTWARE.
 				//**********************************************************************
 	
 				setHeight: function(specFile, win){
+					return;
+	
 					if(route.isAlone()){
 						if(this._isRunningInIframe){
 							this._parentWindow.isolatedRunner.setHeight(specFile, win);
@@ -1425,7 +1506,7 @@ SOFTWARE.
 						var height = win.getComputedStyle(win.document.body).height;
 						height = parseInt(height.replace('px', ''), 10) + 20;
 	
-						this._iframe.style.height = height + 'px';
+	//					this._iframe.style.height = height + 'px';
 	
 						// @todo TODO the specFile is not for the log, this is only for lint
 						// the specFile could be used to set the height of the specified iframe
@@ -1434,7 +1515,21 @@ SOFTWARE.
 						log(specFile + ' setHeight: ' + height);
 					}
 				},
-				
+	
+				onChildStart: function(specFile) {
+					this.setCurrentTestObj(tests.getTestBySpec(specFile));
+					var testObj = this.getCurrentTestObj();
+					this._clearDumbPreventerWatchDog();
+					testObj.onRun();
+					log('Loaded!');
+	
+					var pos = findPos(testObj.getElement()) - (getHeight(this._specList) / 2);
+					if(pos <= 0){
+						pos = 0;
+					}
+					this._specList.scrollTop = pos;
+				},
+	
 				childFinish: function(specFile, reporter, childRunner){
 					if(route.isAlone()){
 						if(this._isRunningInIframe){
@@ -1443,25 +1538,25 @@ SOFTWARE.
 						// else in case that is executed alone but outside of the iframe
 						// we won't need to call the parentWindow
 					} else {
-						// executed on PARENT
+						// executed on CHILD context with PARENNT MEMORY ACCESS!!!
 						this._clearWatchDog();
-						
-						if(reporter){
-							this._printReporter(reporter);
-							this._checkIsPassed(reporter, specFile);
+						this._setDumbPreventerWatchdog();
+						var test = tests.getTestBySpec(specFile);
+						test.setReporter(reporter);
+						test.setChildRunner(childRunner);
+	
+						this._nextReadyToBeExecuted = true;
+						if(!route.isAutoStart()){
+							this._next();
 						}
-						
-						this._addChildSpecs(specFile, childRunner);
-						
-						// check if is runned again or using the button
-						this._next();
+	
 					}
 				},
-				
+	
 				getInternalReporter: function(){
 					return this._reporter;
 				},
-				
+	
 				getExternalReporter: function(){
 					if(route.isAlone()){
 						if(this._isRunningInIframe){
@@ -1486,17 +1581,28 @@ SOFTWARE.
 					return this._onJasmineFinish.apply(jasmine.getEnv().currentRunner(), arguments);
 				},
 	
-				_onFinishIsolatedAllMode: function(){
+				_onFinishIsolatedMode: function(){
 					this._runAllBtn.removeAttribute('disabled');
-					
+	
 					this._defaultReporter.onFinishSuite();
 					this._defaultReporter.finished = true;
-					
+	
 					this._printReporter(this._reporter);
-					
-					this._iframe.style.display = 'none';
-					// @todo TODO show the merged HTML REPORT
-					// @todo TODO fix the links in order to point to specFile instead jasmine internal spec
+	
+					removeClass(this._specList, 'failed');
+					removeClass(this._specList, 'timeout');
+					removeClass(this._specList, 'passed');
+	
+					if(tests.isFailed()){
+						addClass(this._specList, 'failed');
+					} else if(tests.isTimeOut()) {
+						addClass(this._specList, 'timeout');
+					} else {
+						addClass(this._specList, 'passed');
+					}
+	
+					this._finished = true;
+					this._closeTestWindow();
 				},
 	
 				_onFinish: function(){
@@ -1509,14 +1615,15 @@ SOFTWARE.
 				//**********************************************************************
 				/**
 				 * This method prepares the context to execute all the specs in a isolated way
-				 * 
+				 *
 				 */
 				_prepareIsolated: function(){
 					this.ISOLATED = true;
-					
+	
 					fixReporter(this._defaultReporter);
-					
+	
 					this._specs = this._findSpecs();
+	
 					tests.setRunner(this);
 					tests.createTestsObjects(this._specs);
 	
@@ -1524,9 +1631,9 @@ SOFTWARE.
 				},
 	
 				/**
-				 * This method prepares the context to execute one and just one 
+				 * This method prepares the context to execute one and just one
 				 * spec inside of the iframe
-				 * 
+				 *
 				 */
 				_prepareAlone: function(){
 					this.ISOLATED = false;
@@ -1537,16 +1644,17 @@ SOFTWARE.
 					tests.setRunner(this);
 					tests.createTestsObjects(this._specs);
 	
-					this.load(tests.getTestBySpec(route.getCurrentSpecFile()));
+					this.setCurrentTestObj( tests.getTestBySpec(route.getCurrentSpecFile()) );
+					this.load();
 				},
 	
 				_createDOMContext: function(){
 					this._containerElement = document.createElement('div');
 					this._containerElement.id = "isolatedTests";
-					
+	
 					this._specList = document.createElement('dl');
 					this._specList.className = 'isolated-test-list';
-					
+	
 					var title = document.createElement('dt');
 					this._runAllBtn = document.createElement('button');
 					this._runAllBtn.id = 'isolated-controls-run';
@@ -1558,29 +1666,22 @@ SOFTWARE.
 					title.appendChild(this._runAllBtn);
 					title.appendChild(titleH);
 					this._specList.appendChild(title);
-					
+	
 					var workarea = document.createElement('div');
 					workarea.className = 'isolated-test-workarea';
 					workarea.id = 'isolated-test-workarea';
-					
-					this._iframe = document.createElement('iframe');
-					this._iframe.id = 'isolated-tests-iframe';
-					this._iframe.setAttribute('frameborder', 0);
-					this._iframe.setAttribute('scrolling', 'no');
-					
-					workarea.appendChild(this._iframe);
-					
+	
 					this._containerElement.appendChild(this._specList);
 					this._containerElement.appendChild(workarea);
-					
+	
 					document.body.appendChild(this._containerElement);
-					
+	
 					this._fillTestsList();
 				},
-				
+	
 				_fillTestsList: function(){
 					var i, testObj, specFile, path, tmp;
-					
+	
 					this._specs.sort();
 	
 					for(i = 0; i < this._specs.length; i++){
@@ -1597,14 +1698,14 @@ SOFTWARE.
 						);
 					}
 				},
-				
+	
 				_createPathHeader: function(path){
 					var title = document.createElement('dt');
 					title.className = 'path';
 					title.innerHTML = path;
 					this._specList.appendChild(title);
 				},
-				
+	
 				_getPath: function(specFile){
 					var tmp = specFile.split('/');
 					tmp.pop();
@@ -1614,55 +1715,80 @@ SOFTWARE.
 				//**********************************************************************
 				// ITERATION & LOAD METHODS
 				//**********************************************************************
-				_next: function(){
-					this._setWatchdog();
+				setCurrentTestObj: function(testObj){
+					this._currentSpecObject = testObj;
+					this._currentSpecFile = testObj.getSpecFile();
+				},
 	
-					this._ix++;
-					if(this._ix >= tests.getLength()){
+				getCurrentTestObj: function(){
+					return this._currentSpecObject;
+				},
+	
+				getRunningSpec: function(){
+					return this._currentSpecFile;
+				},
+	
+				_next: function(timeout){
+					this._processLastExecutedSpec();
+					this._nextReadyToBeExecuted = false;
+	
+					this._clearWatchDog();
+					this._clearDumbPreventerWatchDog();
+	
+					if(timeout){
+						this.getCurrentTestObj().markAsTimeout();
+					}
+	
+					if(this._finished === false){
+						this._ix++;
+						if(this._ix >= tests.getLength()){
+							this._onFinish();
+						}else{
+							this.setCurrentTestObj( tests.getIndex(this._ix) );
+							this.load();
+						}
+					} else {
 						this._onFinish();
-					}else{
-						this.load(tests.getIndex(this._ix));
 					}
 				},
 	
-				load: function(testObj){
-					this._currentSpecFile = testObj.getSpecFile();
+				load: function(){
+					var testObj = this.getCurrentTestObj();
 					if(!route.isAlone()){
+						testObj.markAsLoading();
+	
 						this._defaultReporter._ExecutingSpecFile(this._currentSpecFile);
-						testObj.onRun();
-						this._iframe.style.display = 'block';
-						this._iframe.src = testObj.getSRC();
+						this._setWatchdog();
+						// this._closeTestWindow();
+						this._startTestWindow();
+	
 					}else{
 						this._specs = [testObj.getSpecFile()];
 					}
 				},
-				
-				getRunningSpec: function(){
-					return this._currentSpecFile;
-				},
-				
+	
 				runCurrent: function(){
-					
+	
 				},
 	
 				// PRIVATE Methods
-				
+	
 				/**
 				 * Prevents to jasmine be executed by the default Runner
 				 */
 				_hackJasmine: function(){
 					this._executeJasmine = jasmine.getEnv().execute.bind(jasmine.getEnv());
 					jasmine.getEnv().execute = function(){};
-					
+	
 					this._onJasmineFinish = jasmine.getEnv().currentRunner().finishCallback;
 					var me = this;
 					jasmine.getEnv().currentRunner().finishCallback = function (){
 						me._onFinish();
 					};
-					
+	
 					this._setReporter();
 				},
-				
+	
 				_setReporter: function(){
 					var me = this;
 					if(!!window.reporter){
@@ -1683,7 +1809,7 @@ SOFTWARE.
 	
 						window.reporter = this._defaultReporter;
 					}
-					
+	
 					if(window.reporter instanceof jasmine.HtmlReporter){
 						this._reporterClass = 'HtmlReporter';
 						jasmine.getEnv().specFilter = function(spec) {
@@ -1702,6 +1828,10 @@ SOFTWARE.
 					if(route.isAlone()){
 						this._reporter = new jasmine.JsApiReporter();
 						jasmine.getEnv().addReporter(this._reporter);
+	
+						var viewReporter = new HtmlReporter();
+						viewReporter.toBody = true;
+						jasmine.getEnv().addReporter(viewReporter);
 					}
 				},
 	
@@ -1715,7 +1845,7 @@ SOFTWARE.
 							specs = this._clone('specFiles');
 						}
 	
-						// @todo TODO Improve this search to be more compatible with 
+						// @todo TODO Improve this search to be more compatible with
 						// diferents types of templates
 	
 						return specs;
@@ -1736,23 +1866,43 @@ SOFTWARE.
 					this._clearWatchDog();
 	
 					this._watchdogTimer = setTimeout(
-						this._next.bind(this), 
+						this._next.bind(this, true),
 						window.ISOLATED_TEST_WATCHDOG_TIME
 					);
 				},
-				
+	
+				_setDumbPreventerWatchdog: function(){
+					this._clearDumbPreventerWatchDog();
+	
+					this._watchdogDumbPreventerTimer = setTimeout(
+						this._startTestWindow.bind(this, true),
+						window.DUMB_PREVENTER_WATCHDOG_TIME
+					);
+				},
+	
 				_clearWatchDog: function(){
 					clearTimeout(this._watchdogTimer);
 				},
-				
+	
+				_clearDumbPreventerWatchDog: function(){
+					clearTimeout(this._watchdogDumbPreventerTimer);
+				},
+	
+				_startTestWindow: function(retry){
+					var testObj = this.getCurrentTestObj();
+					this._testWindow = window.open(testObj.getSRC(), 'currentTest', 'width=880, height=600, left=1020, top=50, scrollbars=yes, resizable=yes');
+					this._setDumbPreventerWatchdog();
+					log('Loading: ' + testObj.getSRC() + (retry ? '[RETRY]' : ''));
+				},
+	
 				_printReporter: function(reporter){
 					log( printReporter(reporter) );
 				},
-				
+	
 				_checkIsPassed: function(reporter, specFile){
-					var passedState = false, 
-						results = reporter.results(), 
-						result, 
+					var passedState = false,
+						results = reporter.results(),
+						result,
 						id
 					;
 	
@@ -1767,44 +1917,78 @@ SOFTWARE.
 					var test = tests.getTestBySpec(specFile);
 					test.onFinish(passedState);
 				},
-				
+	
 				_addChildSpecs: function(specFile, runner){
 					this._childSpecsObjectsBySpecFile[specFile] = runner.specs();
 					this._processSpecsByFile(this._childSpecsObjectsBySpecFile[specFile], specFile, []);
 				},
-				
+	
 				getSpecs: function(){
 					var specs = [], specFile, spec, i;
 					for(i = 0; i < this._specs.length; i++){
 						specFile = this._specs[i];
 						if(this._childSpecsObjectsBySpecFile.hasOwnProperty(specFile)){
 							this._processSpecsByFile(
-								this._childSpecsObjectsBySpecFile[specFile], 
-								specFile, 
+								this._childSpecsObjectsBySpecFile[specFile],
+								specFile,
 								specs
 							);
 						}
 					}
 					return specs;
 				},
-				
+	
 				_processSpecsByFile: function(specsByFile, specFile, specs){
 					var i;
+	
 					for(i = 0; i < specsByFile.length; i++){
+	
+						specsByFile[i].id = this._getSpecId(specsByFile[i], specFile);
+	
 						this._fixSpecNSuite(specsByFile[i], specFile);
 						specs.push(specsByFile[i]);
 					}
 				},
-				
+	
 				_fixSpecNSuite: function(spec, specFile){
 					var f = function(){
 						return specFile;
 					};
 					spec.getSpecFile = f;
 					spec.suite.getSpecFile = f;
+					spec.suite.id = this._getSuiteId(spec.suite, specFile);
+				},
+	
+				_getSpecId: function(spec, specFile){
+					if(!spec.hasOwnProperty('______id')){
+						spec.______id = spec.id;
+					}
+					return this._getUID('Spec', specFile, spec.______id);
+				},
+	
+				_getSuiteId: function(suite, specFile){
+					if(!suite.hasOwnProperty('______id')){
+						suite.______id = suite.id;
+					}
+					return this._getUID('Suite', specFile, suite.______id);
+				},
+	
+				_getUID: function(type, specFile, id){
+					var internalID = type + '_' + specFile + id;
+					var id = this._idsForSpecNSuites.indexOf(internalID);
+					if(id === -1){
+						id = this._idsForSpecNSuites.push(internalID) - 1;
+					}
+					return id;
+				},
+	
+				_closeTestWindow: function(){
+					if (!!this._testWindow && !!this._testWindow.close) {
+						this._testWindow.close();
+					}
 				}
 			};
-			
+	
 			return isolatedRunner;
 		}
 	
@@ -1814,17 +1998,23 @@ SOFTWARE.
 			window.ISOLATED_TEST_WATCHDOG_TIME = DEFAULT_WATCHDOG;
 			logError('ISOLATED_TEST_WATCHDOG_TIME is not a number. Defined an default time: ' + DEFAULT_WATCHDOG);
 		}
+		if(undefined === window.DUMB_PREVENTER_WATCHDOG_TIME){
+			window.DUMB_PREVENTER_WATCHDOG_TIME = DEFAULT_DUMB_PREVENTER_WATCHDOG;
+		}else if(!isFinite(window.DUMB_PREVENTER_WATCHDOG_TIME)){
+			window.DUMB_PREVENTER_WATCHDOG_TIME = DEFAULT_DUMB_PREVENTER_WATCHDOG;
+			logError('DUMB_PREVENTER_WATCHDOG_TIME is not a number. Defined an default time: ' + DEFAULT_WATCHDOG);
+		}
 	
 		function logError(msg){
-			return (!!console && !!console.error ? 
-				console.error(msg) : 
+			return (!!console && !!console.error ?
+				console.error(msg) :
 				alert(msg) // throw new error can breaks the execution
 			);
 		};
 	
 		function log(msg){
-			return (!!console && !!console.log ? 
-				console.log(msg) : 
+			return (!!console && !!console.log ?
+				console.log(msg) :
 				null
 			);
 		};
@@ -1833,13 +2023,26 @@ SOFTWARE.
 			// @todo TODO change this to be CrossBrowser and also accept OLD Browsers
 			return Array.isArray(o);
 		}
-		
+	
+		function findPos(obj) {
+			var curtop = 0;
+			if (obj.offsetParent) {
+				do {
+					curtop += obj.offsetTop;
+				} while (obj = obj.offsetParent);
+			return curtop;
+			}
+		}
+	
+		function getHeight(element){
+			return parseInt(window.getComputedStyle(element).height.replace('px', ''), 10) || 0;
+		}
+	
 		var isolatedRunner = defineIsolatedRunner();
 		window.isolatedRunner = isolatedRunner;
 		isolatedRunner._setUp();
-		
+	
 		return isolatedRunner;
 	});
-	
 	
 }());
