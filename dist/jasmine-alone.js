@@ -102,6 +102,25 @@ SOFTWARE.
 				this._listElement.className += ' timeout';
 			}
 		};
+		
+		Test.prototype.getElement = function(){
+			return this._listElement;
+		};
+	
+		Test.prototype.markAsLoading = function(){
+			if(!route.isAlone()){
+				this._runButton.setAttribute('disabled', 'disabled');
+				this._listElement.className += ' loading';
+			}
+		};
+	
+		Test.prototype.markAsTimeout = function(){
+			if(!route.isAlone()){
+				this.onFinish(false);
+				this._listElement.className += ' timeout';
+			}
+		};
+		
 	
 		Test.prototype.onFinish = function(passedState, internal){
 			this._tE = Date.now();
@@ -737,10 +756,12 @@ SOFTWARE.
 				switch (specView.status()) {
 					case 'passed':
 						this.passedCount++;
+						this.runningSpecCount++;
 						break;
 	
 					case 'failed':
 						this.failedCount++;
+						this.runningSpecCount++;
 						break;
 	
 					case 'empty':
@@ -748,7 +769,6 @@ SOFTWARE.
 						this.skippedCount++;
 						break;
 				}
-				this.runningSpecCount++;
 	
 				specView.refresh();
 				this.refresh();
@@ -1072,6 +1092,7 @@ SOFTWARE.
 	
 		return printReporter;
 	});
+	
 	
 	// ** @file E:\Dropbox\DEVEL\JasmineAlone\sources\src\route.js
 	/*

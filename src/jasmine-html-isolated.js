@@ -313,10 +313,12 @@ define([], function() {
 			switch (specView.status()) {
 				case 'passed':
 					this.passedCount++;
+					this.runningSpecCount++;
 					break;
 
 				case 'failed':
 					this.failedCount++;
+					this.runningSpecCount++;
 					break;
 
 				case 'empty':
@@ -324,7 +326,6 @@ define([], function() {
 					this.skippedCount++;
 					break;
 			}
-			this.runningSpecCount++;
 
 			specView.refresh();
 			this.refresh();
