@@ -75,6 +75,25 @@ define(['./route'], function(route){
 			this._listElement.className += ' timeout';
 		}
 	};
+	
+	Test.prototype.getElement = function(){
+		return this._listElement;
+	};
+
+	Test.prototype.markAsLoading = function(){
+		if(!route.isAlone()){
+			this._runButton.setAttribute('disabled', 'disabled');
+			this._listElement.className += ' loading';
+		}
+	};
+
+	Test.prototype.markAsTimeout = function(){
+		if(!route.isAlone()){
+			this.onFinish(false);
+			this._listElement.className += ' timeout';
+		}
+	};
+	
 
 	Test.prototype.onFinish = function(passedState, internal){
 		this._tE = Date.now();
