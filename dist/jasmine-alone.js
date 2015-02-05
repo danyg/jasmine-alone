@@ -910,12 +910,7 @@ SOFTWARE.
 					me.summary.className = c;
 				}, 4000);
 			};
-			a.onmouseover = function(){
-				me.summary.className += ' highlighted';
-			};
-			a.onmouseout = function(){
-				me.summary.className = me.summary.className.replace('highlighted', '').trim();
-			};
+	
 		};
 	
 		HtmlReporter.SpecView.prototype.status = function() {
@@ -1688,12 +1683,12 @@ SOFTWARE.
 					title.appendChild(titleH);
 					this._specList.appendChild(title);
 	
-					var workarea = document.createElement('div');
-					workarea.className = 'isolated-test-workarea';
-					workarea.id = 'isolated-test-workarea';
+					this.workarea = document.createElement('div');
+					this.workarea.className = 'isolated-test-workarea';
+					this.workarea.id = 'isolated-test-workarea';
 	
 					this._containerElement.appendChild(this._specList);
-					this._containerElement.appendChild(workarea);
+					this._containerElement.appendChild(this.workarea);
 	
 					document.body.appendChild(this._containerElement);
 	
@@ -1911,7 +1906,13 @@ SOFTWARE.
 	
 				_startTestWindow: function(retry){
 					var testObj = this.getCurrentTestObj();
-					this._testWindow = window.open(testObj.getSRC(), 'currentTest', 'width=880, height=600, left=1020, top=50, scrollbars=yes, resizable=yes');
+	
+					var left = window.screenX + this.workarea.offsetLeft;
+					var top = window.screenY + this.workarea.offsetTop;
+					var W = this.workarea.clientWidth;
+					var H = this.workarea.clientHeight;
+	
+					this._testWindow = window.open(testObj.getSRC(), 'currentTest', 'width=' + W + ', height=' + H + ', left=' + left + ', top=' + top + ', scrollbars=yes, resizable=yes');
 					this._setDumbPreventerWatchdog();
 					log('Loading: ' + testObj.getSRC() + (retry ? '[RETRY]' : ''));
 				},

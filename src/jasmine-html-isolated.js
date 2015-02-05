@@ -467,12 +467,7 @@ define([], function() {
 				me.summary.className = c;
 			}, 4000);
 		};
-		a.onmouseover = function(){
-			me.summary.className += ' highlighted';
-		};
-		a.onmouseout = function(){
-			me.summary.className = me.summary.className.replace('highlighted', '').trim();
-		};
+
 	};
 
 	HtmlReporter.SpecView.prototype.status = function() {
