@@ -68,7 +68,7 @@ define([
 				}
 
 				this._childSpecsObjectsBySpecFile = {};
-				this._idsForSpecNSuites = [];
+				this._idsForSpecNSuites = ['?'];
 			},
 
 			init: function(){
@@ -164,6 +164,7 @@ define([
 						this._onFinish = this._onFinishAloneMode;
 
 						require(this._specs, function(){
+							me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 							me._executeBeforeExecuteTests();
 
 							jasmine.getEnv().addReporter(me._reporter);
@@ -172,7 +173,6 @@ define([
 							}
 							me._executeJasmine();
 
-							me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 						});
 					}else{
 						this._onFinish = this._onFinishIsolatedMode;
@@ -246,6 +246,8 @@ define([
 			},
 
 			onChildStart: function(specFile) {
+				this._defaultReporter._ExecutingSpecFile(specFile);
+
 				this.setCurrentTestObj(tests.getTestBySpec(specFile));
 				var testObj = this.getCurrentTestObj();
 				this._clearDumbPreventerWatchDog();
@@ -486,9 +488,8 @@ define([
 				if(!route.isAlone()){
 					testObj.markAsLoading();
 
-					this._defaultReporter._ExecutingSpecFile(this._currentSpecFile);
+					// this._defaultReporter._ExecutingSpecFile(this._currentSpecFile);
 					this._setWatchdog();
-					// this._closeTestWindow();
 					this._startTestWindow();
 
 				}else{
@@ -710,11 +711,11 @@ define([
 
 			_getUID: function(type, specFile, id){
 				var internalID = type + '_' + specFile + id;
-				var id = this._idsForSpecNSuites.indexOf(internalID);
-				if(id === -1){
-					id = this._idsForSpecNSuites.push(internalID) - 1;
-				}
-				return id;
+				// var id = this._idsForSpecNSuites.indexOf(internalID);
+				// if(id === -1){
+				// 	id = this._idsForSpecNSuites.push(internalID) - 1;
+				// }
+				return internalID;
 			},
 
 			_closeTestWindow: function(){

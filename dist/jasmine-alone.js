@@ -494,10 +494,29 @@ SOFTWARE.
 			var parent = child[parentSuite];
 	
 			if (parent) {
+	
 				if (typeof this.views.suites[parent.id] == 'undefined') {
 					this.views.suites[parent.id] = new HtmlReporter.SuiteView(parent, this.dom, this.views);
 				}
 				parentDiv = this.views.suites[parent.id].element;
+	
+			} else if(child.getSpecFile && !child.isFile) {
+	
+				var specFile = child.getSpecFile();
+				if (typeof this.views.files[specFile] == 'undefined') {
+					this.views.files[specFile] = new HtmlReporter.SuiteView(
+						{
+							isFile: true,
+							description: specFile,
+							getSpecFile: function(){ return specFile;},
+							parentSuite: null
+						},
+						this.dom,
+						this.views
+					);
+				}
+				parentDiv = this.views.files[specFile].element;
+	
 			}
 	
 			parentDiv.appendChild(childElement);
@@ -684,10 +703,6 @@ SOFTWARE.
 			var params = [];
 			var sectionName = spec.getFullName();
 	
-			if (sectionName) {
-				params.push('spec=' + encodeURIComponent(sectionName));
-			}
-	
 			if(!!spec.getSpecFile){
 				params.push('specFile=' + encodeURIComponent(spec.getSpecFile()));
 			}
@@ -730,7 +745,8 @@ SOFTWARE.
 	
 				this.views = {
 					specs: {},
-					suites: {}
+					suites: {},
+					files: {}
 				};
 	
 				for (var i = 0; i < specs.length; i++) {
@@ -897,7 +913,7 @@ SOFTWARE.
 			this.createDom('a', {
 				className: 'description',
 				target: '_blank',
-				href: '?spec=' + encodeURIComponent(this.spec.getFullName()) + (!!this.spec.getSpecFile ? '&specFile=' + encodeURIComponent(this.spec.getSpecFile()) : ''),
+				href: (!!this.spec.getSpecFile ? '?specFile=' + encodeURIComponent(this.spec.getSpecFile()) : ''),
 				title: this.spec.getFullName()
 			}, this.spec.getFullName())
 					);
@@ -976,11 +992,11 @@ SOFTWARE.
 			this.dom = dom;
 			this.views = views;
 	
-			this.element = this.createDom('div', {className: 'suite'},
+			this.element = this.createDom('div', {className: 'suite' + (!!suite.isFile ? ' fileContainer' : '')},
 			this.createDom('a', {
 				className: 'description',
 				target: '_blank',
-				href: HtmlReporter.sectionLink(this.suite.getFullName()) + (!!this.suite.getSpecFile ? '&specFile=' + encodeURIComponent(this.suite.getSpecFile()) : '')
+				href: (!!this.suite.getSpecFile ? '?specFile=' + encodeURIComponent(this.suite.getSpecFile()) : '#')
 			}, this.suite.description)
 					);
 	
@@ -1279,7 +1295,7 @@ SOFTWARE.
 	!(function() {
 		var s = document.createElement('style');
 		s.setAttribute('type', 'text/css');
-		s.innerHTML = "html, body, #isolatedTests{\n\twidth: 100%;\n\theight: 100%;\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\nbody.jasmine-alone-whole,\nbody.jasmine-alone-whole #isolatedTests{\n\toverflow: auto;\n}\n\n.isolated-test-list{\n\twidth: 30%;\n\tfloat: left;\n\theight: 100%;\n\toverflow: auto;\n\tbackground-color: #222;\n\tmargin: 0;\n\tpadding: 0;\n\tposition: relative;\n\tz-index: 2;\n}\n\n.isolated-test-list.passed{\n\tbox-shadow: 0px 0px 40px 5px #1bb41b\n}\n\n.isolated-test-list.failed{\n\tbox-shadow: 0px 0px 40px 5px #b41b1b\n}\n\n.isolated-test-list.timeout{\n\tbox-shadow: 0px 0px 40px 5px #E88809\n}\n\n.isolated-test-list dd{\n\tborder-top: solid 1px #777;\n\t-webkit-transition: background 500ms;\n\t-moz-transition: background 500ms;\n\t-ms-transition: background 500ms;\n\t-o-transition: background 500ms;\n\ttransition: background 500ms;\n}\n\n.isolated-test-list dd,\n.isolated-test-list dt{\n\tpadding: 0px 10px;\n\tmargin: 0;\n\tbackground-color: #444;\n\tcolor: #f1f1f1;\n\tline-height: 30px;\n\tclear: both;\n\tborder-bottom: solid 1px #222;\n}\n\n.isolated-test-list dt.path{\n\tbackground: #222;\n}\n\n.isolated-test-list dd:hover{\n\tbackground-color: #666;\n}\n\n.isolated-test-list button{\n\tfloat: right;\n\ttop: 1px;\n\tposition: relative;\n}\n\n.isolated-test-list button,\n.isolated-test-list a{\n\tcursor: pointer;\n}\n.isolated-test-list button[disabled]{\n\topacity: .6;\n\tcursor: default;\n}\n.isolated-test-list dd.running button[disabled]{\n\tcursor: inherit;\n}\n\n.isolated-test-list button,\n.isolated-test-list a,\n.isolated-test-list dd a:visited{\n\tcolor: #f1f1f1;\n\tline-height: 26px;\n\n\ttext-decoration: none;\n}\n\nbutton#isolated-controls-run,\n.isolated-test-list dd button{\n\tborder: none;\n\tpadding: 0px 10px 0px 26px;\n\tline-height: 25px;\n\tbackground:\n\t\t#222\n\t\turl(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)\n\t\tno-repeat\n\t\t5px 5px\n\t\t;\n}\n\n.isolated-test-list dt h1{\n\tfont-size: 22px;\n}\n.isolated-test-list dt{\n\tpadding-left: 20px;\n}\n.isolated-test-list dt button,\n.isolated-test-list dt h1{\n\tdisplay: inline;\n\tline-height: 45px;\n}\n\n.isolated-test-list dd{\n\n\tborder-left: solid 10px #222;\n\n\t-webkit-transition: border-left-color 500ms;\n\t-moz-transition: border-left-color 500ms;\n\t-ms-transition: border-left-color 500ms;\n\t-o-transition: border-left-color 500ms;\n\ttransition: border-left-color 500ms;\n}\n\n.isolated-test-list dd.failed{\n\tborder-left-color: #b41b1b;\n}\n.isolated-test-list dd.failed.timeout{\n\tborder-left-color: #E88809;\n\tbackground: #7B664B;\n}\n\n.isolated-test-list dd.passed{\n\tborder-left-color: #1bb41b;\n}\n\n.isolated-test-list dd.loading{\n\tborder-left-color: orange;\n\tcursor: progress;\n\n\t-webkit-animation-name: loading;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: loading;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-list dd.running{\n\tborder-left-color: #1bb4af;\n\tcursor: progress;\n\n\t-webkit-animation-name: running;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: running;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-workarea{\n\twidth: 69%;\n\theight: 100%;\n\toverflow: auto;\n\tfloat: right;\n\tposition: relative;\n}\n\n.isolated-test-workarea iframe{\n\twidth: 100%;\n\tborder: 0;\n}\n.isolated-test-workarea iframe.running{\n\tcursor: wait;\n}\n\niframe#isolated-tests-iframe{\n\tmin-height: 90%;\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n}\n\n@keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n@-webkit-keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n.time-counter{color: #888;}\n\nbody.timeout, body.timeout #HTMLReporter{\n\tbackground: #fff0cc !important;\n}\n\n#HTMLReporter .summary .suite.skipped,\n\n#HTMLReporter .summary .suite.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n\n#HTMLReporter .summary .specSummary.highlighted{\n\t-webkit-animation-name: highlight;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: highlight;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n#HTMLReporter .summary .specSummary.skipped,\n#HTMLReporter .summary .specSummary.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n#HTMLReporter .skippedAlert.bar{\n\tbackground: rgba(232, 136, 9, 1);\n}\n#HTMLReporter .skippedAlert.bar:hover{\n\ttext-decoration: none;\n}\n\n#HTMLReporter .symbolSummary li.empty:before{\n\tcolor: #bababa;\n\tcontent: \"\\02717\";\n}\n#HTMLReporter .symbolSummary li.skipped:before{\n\tcolor: #E88809;\n\tcontent: \"\\02717\";\n}\ndiv#isolatedTests div#HTMLReporter .symbolSummary li.failed{\n\tline-height: inherit;\n}\n#HTMLReporter .symbolSummary li.failed:before{\n\tcontent: \"\\02717\";\n}\n\n#HTMLReporter .symbolSummary li.passed:before{\n\tcontent: \"\\02713\";\n\n}\n\n#HTMLReporter .symbolSummary li{\n\theight: 14px;\n\twidth: 18px;\n\tfont-size: 20px !important;\n\tposition: relative;\n}\n\n#HTMLReporter .symbolSummary li a{\n\tposition: absolute;\n\twidth: 100%;\n\theight: 100%;\n\tdisplay: block;\n\ttop: 0;\n\tleft: 0;\n}";
+		s.innerHTML = "html, body, #isolatedTests{\n\twidth: 100%;\n\theight: 100%;\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\nbody.jasmine-alone-whole,\nbody.jasmine-alone-whole #isolatedTests{\n\toverflow: auto;\n}\n\n.isolated-test-list{\n\twidth: 30%;\n\tfloat: left;\n\theight: 100%;\n\toverflow: auto;\n\tbackground-color: #222;\n\tmargin: 0;\n\tpadding: 0;\n\tposition: relative;\n\tz-index: 2;\n}\n\n.isolated-test-list.passed{\n\tbox-shadow: 0px 0px 40px 5px #1bb41b\n}\n\n.isolated-test-list.failed{\n\tbox-shadow: 0px 0px 40px 5px #b41b1b\n}\n\n.isolated-test-list.timeout{\n\tbox-shadow: 0px 0px 40px 5px #E88809\n}\n\n.isolated-test-list dd{\n\tborder-top: solid 1px #777;\n\t-webkit-transition: background 500ms;\n\t-moz-transition: background 500ms;\n\t-ms-transition: background 500ms;\n\t-o-transition: background 500ms;\n\ttransition: background 500ms;\n}\n\n.isolated-test-list dd,\n.isolated-test-list dt{\n\tpadding: 0px 10px;\n\tmargin: 0;\n\tbackground-color: #444;\n\tcolor: #f1f1f1;\n\tline-height: 30px;\n\tclear: both;\n\tborder-bottom: solid 1px #222;\n}\n\n.isolated-test-list dt.path{\n\tbackground: #222;\n}\n\n.isolated-test-list dd:hover{\n\tbackground-color: #666;\n}\n\n.isolated-test-list button{\n\tfloat: right;\n\ttop: 1px;\n\tposition: relative;\n}\n\n.isolated-test-list button,\n.isolated-test-list a{\n\tcursor: pointer;\n}\n.isolated-test-list button[disabled]{\n\topacity: .6;\n\tcursor: default;\n}\n.isolated-test-list dd.running button[disabled]{\n\tcursor: inherit;\n}\n\n.isolated-test-list button,\n.isolated-test-list a,\n.isolated-test-list dd a:visited{\n\tcolor: #f1f1f1;\n\tline-height: 26px;\n\n\ttext-decoration: none;\n}\n\nbutton#isolated-controls-run,\n.isolated-test-list dd button{\n\tborder: none;\n\tpadding: 0px 10px 0px 26px;\n\tline-height: 25px;\n\tbackground:\n\t\t#222\n\t\turl(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)\n\t\tno-repeat\n\t\t5px 5px\n\t\t;\n}\n\n.isolated-test-list dt h1{\n\tfont-size: 22px;\n}\n.isolated-test-list dt{\n\tpadding-left: 20px;\n}\n.isolated-test-list dt button,\n.isolated-test-list dt h1{\n\tdisplay: inline;\n\tline-height: 45px;\n}\n\n.isolated-test-list dd{\n\n\tborder-left: solid 10px #222;\n\n\t-webkit-transition: border-left-color 500ms;\n\t-moz-transition: border-left-color 500ms;\n\t-ms-transition: border-left-color 500ms;\n\t-o-transition: border-left-color 500ms;\n\ttransition: border-left-color 500ms;\n}\n\n.isolated-test-list dd.failed{\n\tborder-left-color: #b41b1b;\n}\n.isolated-test-list dd.failed.timeout{\n\tborder-left-color: #E88809;\n\tbackground: #7B664B;\n}\n\n.isolated-test-list dd.passed{\n\tborder-left-color: #1bb41b;\n}\n\n.isolated-test-list dd.loading{\n\tborder-left-color: orange;\n\tcursor: progress;\n\n\t-webkit-animation-name: loading;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: loading;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-list dd.running{\n\tborder-left-color: #1bb4af;\n\tcursor: progress;\n\n\t-webkit-animation-name: running;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: running;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-workarea{\n\twidth: 69%;\n\theight: 100%;\n\toverflow: auto;\n\tfloat: right;\n\tposition: relative;\n}\n\n.isolated-test-workarea iframe{\n\twidth: 100%;\n\tborder: 0;\n}\n.isolated-test-workarea iframe.running{\n\tcursor: wait;\n}\n\niframe#isolated-tests-iframe{\n\tmin-height: 90%;\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n}\n\n@keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n@-webkit-keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n.time-counter{color: #888;}\n\nbody.timeout, body.timeout #HTMLReporter{\n\tbackground: #fff0cc !important;\n}\n\n#HTMLReporter .summary .suite.skipped,\n\n#HTMLReporter .summary .suite.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n\n#HTMLReporter .summary .specSummary.highlighted{\n\t-webkit-animation-name: highlight;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: highlight;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n#HTMLReporter .summary .specSummary.skipped,\n#HTMLReporter .summary .specSummary.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n#HTMLReporter .skippedAlert.bar{\n\tbackground: rgba(232, 136, 9, 1);\n}\n#HTMLReporter .skippedAlert.bar:hover{\n\ttext-decoration: none;\n}\n\n#HTMLReporter .symbolSummary li.empty:before{\n\tcolor: blueviolet;\n\tcontent: \"\\02717\";\n}\n#HTMLReporter .symbolSummary li.skipped:before{\n\tcolor: #E88809;\n\tcontent: \"\\02717\";\n}\ndiv#isolatedTests div#HTMLReporter .symbolSummary li.failed{\n\tline-height: inherit;\n}\n#HTMLReporter .symbolSummary li.failed:before{\n\tcontent: \"\\02717\";\n}\n\n#HTMLReporter .symbolSummary li.passed:before{\n\tcontent: \"\\02713\";\n\n}\n\n#HTMLReporter .symbolSummary li{\n\theight: 14px;\n\twidth: 18px;\n\tfont-size: 20px !important;\n\tposition: relative;\n}\n\n#HTMLReporter .symbolSummary li a{\n\tposition: absolute;\n\twidth: 100%;\n\theight: 100%;\n\tdisplay: block;\n\ttop: 0;\n\tleft: 0;\n}\n\n#HTMLReporter .summary{\n\tpadding: 0;\n}\n\n#HTMLReporter .summary .suite.fileContainer{\n\tpadding: 0px 0px 8px 0px;\n\tmargin: 5px 0px 10px 0px;\n\tborder: solid 1px #bababa;\n\tborder-radius: 5px;\n\tbox-shadow: 2px 2px 5px #bababa;\n}\n\n#HTMLReporter .summary .suite.fileContainer >a.description{\n\tfont-size: 1.2em;\n\tline-height: 2.2em;\n\tdisplay: block;\n\tbackground: #bababa;\n\tmargin-bottom: 8px;\n\tpadding-left: 8px;\n}";
 		document.head.appendChild(s);
 	}());
 	
@@ -1355,7 +1371,7 @@ SOFTWARE.
 					}
 	
 					this._childSpecsObjectsBySpecFile = {};
-					this._idsForSpecNSuites = [];
+					this._idsForSpecNSuites = ['?'];
 				},
 	
 				init: function(){
@@ -1451,6 +1467,7 @@ SOFTWARE.
 							this._onFinish = this._onFinishAloneMode;
 	
 							require(this._specs, function(){
+								me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 								me._executeBeforeExecuteTests();
 	
 								jasmine.getEnv().addReporter(me._reporter);
@@ -1459,7 +1476,6 @@ SOFTWARE.
 								}
 								me._executeJasmine();
 	
-								me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 							});
 						}else{
 							this._onFinish = this._onFinishIsolatedMode;
@@ -1533,6 +1549,8 @@ SOFTWARE.
 				},
 	
 				onChildStart: function(specFile) {
+					this._defaultReporter._ExecutingSpecFile(specFile);
+	
 					this.setCurrentTestObj(tests.getTestBySpec(specFile));
 					var testObj = this.getCurrentTestObj();
 					this._clearDumbPreventerWatchDog();
@@ -1773,9 +1791,8 @@ SOFTWARE.
 					if(!route.isAlone()){
 						testObj.markAsLoading();
 	
-						this._defaultReporter._ExecutingSpecFile(this._currentSpecFile);
+						// this._defaultReporter._ExecutingSpecFile(this._currentSpecFile);
 						this._setWatchdog();
-						// this._closeTestWindow();
 						this._startTestWindow();
 	
 					}else{
@@ -1997,11 +2014,11 @@ SOFTWARE.
 	
 				_getUID: function(type, specFile, id){
 					var internalID = type + '_' + specFile + id;
-					var id = this._idsForSpecNSuites.indexOf(internalID);
-					if(id === -1){
-						id = this._idsForSpecNSuites.push(internalID) - 1;
-					}
-					return id;
+					// var id = this._idsForSpecNSuites.indexOf(internalID);
+					// if(id === -1){
+					// 	id = this._idsForSpecNSuites.push(internalID) - 1;
+					// }
+					return internalID;
 				},
 	
 				_closeTestWindow: function(){

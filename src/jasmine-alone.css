@@ -265,7 +265,7 @@ body.timeout, body.timeout #HTMLReporter{
 }
 
 #HTMLReporter .symbolSummary li.empty:before{
-	color: #bababa;
+	color: blueviolet;
 	content: "\02717";
 }
 #HTMLReporter .symbolSummary li.skipped:before{
@@ -298,4 +298,25 @@ div#isolatedTests div#HTMLReporter .symbolSummary li.failed{
 	display: block;
 	top: 0;
 	left: 0;
+}
+
+#HTMLReporter .summary{
+	padding: 0;
+}
+
+#HTMLReporter .summary .suite.fileContainer{
+	padding: 0px 0px 8px 0px;
+	margin: 5px 0px 10px 0px;
+	border: solid 1px #bababa;
+	border-radius: 5px;
+	box-shadow: 2px 2px 5px #bababa;
+}
+
+#HTMLReporter .summary .suite.fileContainer >a.description{
+	font-size: 1.2em;
+	line-height: 2.2em;
+	display: block;
+	background: #bababa;
+	margin-bottom: 8px;
+	padding-left: 8px;
 }

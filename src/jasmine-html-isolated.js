@@ -51,10 +51,29 @@ define([], function() {
 		var parent = child[parentSuite];
 
 		if (parent) {
+
 			if (typeof this.views.suites[parent.id] == 'undefined') {
 				this.views.suites[parent.id] = new HtmlReporter.SuiteView(parent, this.dom, this.views);
 			}
 			parentDiv = this.views.suites[parent.id].element;
+
+		} else if(child.getSpecFile && !child.isFile) {
+
+			var specFile = child.getSpecFile();
+			if (typeof this.views.files[specFile] == 'undefined') {
+				this.views.files[specFile] = new HtmlReporter.SuiteView(
+					{
+						isFile: true,
+						description: specFile,
+						getSpecFile: function(){ return specFile;},
+						parentSuite: null
+					},
+					this.dom,
+					this.views
+				);
+			}
+			parentDiv = this.views.files[specFile].element;
+
 		}
 
 		parentDiv.appendChild(childElement);
@@ -241,10 +260,6 @@ define([], function() {
 		var params = [];
 		var sectionName = spec.getFullName();
 
-		if (sectionName) {
-			params.push('spec=' + encodeURIComponent(sectionName));
-		}
-
 		if(!!spec.getSpecFile){
 			params.push('specFile=' + encodeURIComponent(spec.getSpecFile()));
 		}
@@ -287,7 +302,8 @@ define([], function() {
 
 			this.views = {
 				specs: {},
-				suites: {}
+				suites: {},
+				files: {}
 			};
 
 			for (var i = 0; i < specs.length; i++) {
@@ -454,7 +470,7 @@ define([], function() {
 		this.createDom('a', {
 			className: 'description',
 			target: '_blank',
-			href: '?spec=' + encodeURIComponent(this.spec.getFullName()) + (!!this.spec.getSpecFile ? '&specFile=' + encodeURIComponent(this.spec.getSpecFile()) : ''),
+			href: (!!this.spec.getSpecFile ? '?specFile=' + encodeURIComponent(this.spec.getSpecFile()) : ''),
 			title: this.spec.getFullName()
 		}, this.spec.getFullName())
 				);
@@ -533,11 +549,11 @@ define([], function() {
 		this.dom = dom;
 		this.views = views;
 
-		this.element = this.createDom('div', {className: 'suite'},
+		this.element = this.createDom('div', {className: 'suite' + (!!suite.isFile ? ' fileContainer' : '')},
 		this.createDom('a', {
 			className: 'description',
 			target: '_blank',
-			href: HtmlReporter.sectionLink(this.suite.getFullName()) + (!!this.suite.getSpecFile ? '&specFile=' + encodeURIComponent(this.suite.getSpecFile()) : '')
+			href: (!!this.suite.getSpecFile ? '?specFile=' + encodeURIComponent(this.suite.getSpecFile()) : '#')
 		}, this.suite.description)
 				);
 
