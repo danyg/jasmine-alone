@@ -42,6 +42,7 @@ define([], function(){
 		return spec;
 	};
 
+/*
 	jasmine.Env.prototype.describe = function(description, specDefinitions){
 		if(!!this.currentSuite && this.currentSuite.skipped){
 			return this.xdescribe(description, specDefinitions);
@@ -80,5 +81,6 @@ define([], function(){
 
 	  return suite;
 	};
+*/
 
 });

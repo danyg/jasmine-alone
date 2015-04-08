@@ -22,8 +22,8 @@ define([
 
 	'use strict';
 
-	var DEFAULT_WATCHDOG = 60000,
-		DEFAULT_DUMB_PREVENTER_WATCHDOG = 3000
+	var DEFAULT_TEST_EXECUTION_TIMEOUT = 60000,
+		DEFAULT_TEST_LOAD_TIMEOUT = 3000
 	;
 
 	function addClass(e, className){
@@ -69,6 +69,7 @@ define([
 
 				this._childSpecsObjectsBySpecFile = {};
 				this._idsForSpecNSuites = ['?'];
+				this._timeForSpecFile = {};
 			},
 
 			init: function(){
@@ -127,12 +128,14 @@ define([
 					specFile
 				;
 				if(!!test){ // first execution there is no test!
+					this._markTime('testEnd', test.getSpecFile());
+
 					reporter = test.getReporter();
 					childRunner = test.getChildRunner();
 					specFile = test.getSpecFile();
 
 					if(!!reporter){
-						this._printReporter(reporter);
+						this._printReporter(reporter, specFile);
 						this._checkIsPassed(reporter, specFile);
 					} else {
 						this._failed = true;
@@ -145,18 +148,30 @@ define([
 				}
 			},
 
+			_requireErrorHandler: function(err) {
+				var failedId = err.requireModules && err.requireModules[0],
+					currentSpecFile = "MAIN PROCESS";
+
+				if(route.isAlone()) {
+					currentSpecFile = route.getCurrentSpecFile();
+				}
+
+				throw new Error("Error Loading Dependencies in [" + currentSpecFile + "], dependencie not found: [" + failedId + "]");
+			},
+
 			/**
 			 * Execute the suite when is in Alone mode, that is execute just one spec
 			 * must be called from the html runner
 			 */
 			run: function(){
 				var me = this;
+
 				if(!this.init()){
 					// do nothing?
 					require(this._specs, function(){
 						me._executeBeforeExecuteTests();
 						jasmine.getEnv().execute();
-					});
+					}, this._requireErrorHandler.bind(this));
 
 					return;
 				}else{
@@ -173,7 +188,7 @@ define([
 							}
 							me._executeJasmine();
 
-						});
+						}, this._requireErrorHandler.bind(this));
 					}else{
 						this._onFinish = this._onFinishIsolatedMode;
 						if(route.isAutoStart()){
@@ -252,7 +267,9 @@ define([
 				var testObj = this.getCurrentTestObj();
 				this._clearDumbPreventerWatchDog();
 				testObj.onRun();
-				log('Loaded!');
+				this._markTime('loadingStop', specFile);
+
+				log('Loaded: ' + specFile + ' in: ' + this._getTimeDiff(specFile, 'loadingStop', 'loadingStart'));
 
 				var pos = findPos(testObj.getElement()) - (getHeight(this._specList) / 2);
 				if(pos <= 0){
@@ -467,6 +484,7 @@ define([
 				this._clearDumbPreventerWatchDog();
 
 				if(timeout){
+					log("TIMEOUT for: " + this.getCurrentTestObj().getSpecFile());
 					this.getCurrentTestObj().markAsTimeout();
 				}
 
@@ -559,9 +577,11 @@ define([
 					this._reporter = new jasmine.JsApiReporter();
 					jasmine.getEnv().addReporter(this._reporter);
 
-					var viewReporter = new HtmlReporter();
-					viewReporter.toBody = true;
-					jasmine.getEnv().addReporter(viewReporter);
+					if(!window._phantom){
+						var viewReporter = new HtmlReporter();
+						viewReporter.toBody = true;
+						jasmine.getEnv().addReporter(viewReporter);
+					}
 				}
 			},
 
@@ -597,7 +617,7 @@ define([
 
 				this._watchdogTimer = setTimeout(
 					this._next.bind(this, true),
-					window.ISOLATED_TEST_WATCHDOG_TIME
+					window.TEST_EXECUTION_TIMEOUT
 				);
 			},
 
@@ -606,7 +626,7 @@ define([
 
 				this._watchdogDumbPreventerTimer = setTimeout(
 					this._startTestWindow.bind(this, true),
-					window.DUMB_PREVENTER_WATCHDOG_TIME
+					window.TEST_LOAD_TIMEOUT
 				);
 			},
 
@@ -620,6 +640,7 @@ define([
 
 			_startTestWindow: function(retry){
 				var testObj = this.getCurrentTestObj();
+				this._markTime('loadingStart', testObj.getSpecFile());
 
 				var left = window.screenX + this.workarea.offsetLeft;
 				var top = window.screenY + this.workarea.offsetTop;
@@ -628,11 +649,34 @@ define([
 
 				this._testWindow = window.open(testObj.getSRC(), 'currentTest', 'width=' + W + ', height=' + H + ', left=' + left + ', top=' + top + ', scrollbars=yes, resizable=yes');
 				this._setDumbPreventerWatchdog();
-				log('Loading: ' + testObj.getSRC() + (retry ? '[RETRY]' : ''));
+				log('Loading: ' + testObj.getSpecFile() + (retry ? '[RETRY]' : ''));
 			},
 
-			_printReporter: function(reporter){
-				log( printReporter(reporter) );
+			_markTime: function (timeKey, specFile) {
+				if(!this._timeForSpecFile.hasOwnProperty(specFile)){
+					this._timeForSpecFile[specFile] = {};
+				}
+				this._timeForSpecFile[specFile][timeKey] = Date.now();
+			},
+
+			_getTimeDiff: function (specFile, timeKeyA, timeKeyB){
+				if(!this._timeForSpecFile.hasOwnProperty(specFile)){
+					return 0;
+				}
+				var timeA = this._timeForSpecFile[specFile][timeKeyA];
+				var timeB = this._timeForSpecFile[specFile][timeKeyB];
+
+				return (timeA - timeB).toString() + "ms";
+			},
+
+			_printReporter: function(reporter, specFile){
+				var extra = '';
+				if(specFile){
+					extra += '\n ' + specFile;
+					extra += '\n Tests executed in: ' + this._getTimeDiff(specFile, 'testEnd', 'loadingStop');
+					extra += '\n Total time: ' + this._getTimeDiff(specFile, 'testEnd', 'loadingStart');
+				}
+				log( printReporter(reporter) + extra);
 			},
 
 			_checkIsPassed: function(reporter, specFile){
@@ -686,16 +730,31 @@ define([
 				}
 			},
 
-			_fixSpecNSuite: function(spec, specFile){
+			_fixSpecNSuite: function(spec, specFile) {
 				var f = function(){
 					return specFile;
 				};
 				spec.getSpecFile = f;
+				this._setSuiteRelWithSpecFile(spec.suite, specFile);
 				spec.suite.getSpecFile = f;
-				spec.suite.id = this._getSuiteId(spec.suite, specFile);
 			},
 
-			_getSpecId: function(spec, specFile){
+			_setSuiteRelWithSpecFile: function(suite, specFile) {
+				var f = function(){
+					return specFile;
+				};
+				suite.getSpecFile = f;
+				suite.id = this._getSuiteId(suite, specFile);
+
+				while (suite.parentSuite !== null) {
+					suite = suite.parentSuite;
+					suite.getSpecFile = f;
+					suite.id = this._getSuiteId(suite, specFile);
+				}
+
+			},
+
+			_getSpecId: function(spec, specFile) {
 				if(!spec.hasOwnProperty('______id')){
 					spec.______id = spec.id;
 				}
@@ -706,16 +765,19 @@ define([
 				if(!suite.hasOwnProperty('______id')){
 					suite.______id = suite.id;
 				}
-				return this._getUID('Suite', specFile, suite.______id);
+
+				var suiteNameID = suite.getFullName();
+
+				return this._getUID('Suite', specFile + '_' + suiteNameID, suite.______id);
 			},
 
 			_getUID: function(type, specFile, id){
-				var internalID = type + '_' + specFile + id;
+				var internalID = type + '_' + specFile + '_' + id;
 				// var id = this._idsForSpecNSuites.indexOf(internalID);
 				// if(id === -1){
 				// 	id = this._idsForSpecNSuites.push(internalID) - 1;
 				// }
-				return internalID;
+				return internalID.replace(/[\s\W]/g, '_').toLowerCase();
 			},
 
 			_closeTestWindow: function(){
@@ -728,17 +790,17 @@ define([
 		return isolatedRunner;
 	}
 
-	if(undefined === window.ISOLATED_TEST_WATCHDOG_TIME){
-		window.ISOLATED_TEST_WATCHDOG_TIME = DEFAULT_WATCHDOG;
-	}else if(!isFinite(window.ISOLATED_TEST_WATCHDOG_TIME)){
-		window.ISOLATED_TEST_WATCHDOG_TIME = DEFAULT_WATCHDOG;
-		logError('ISOLATED_TEST_WATCHDOG_TIME is not a number. Defined an default time: ' + DEFAULT_WATCHDOG);
+	if(undefined === window.TEST_EXECUTION_TIMEOUT){
+		window.TEST_EXECUTION_TIMEOUT = DEFAULT_TEST_EXECUTION_TIMEOUT;
+	}else if(!isFinite(window.TEST_EXECUTION_TIMEOUT)){
+		window.TEST_EXECUTION_TIMEOUT = DEFAULT_TEST_EXECUTION_TIMEOUT;
+		logError('TEST_EXECUTION_TIMEOUT is not a number. Defined an default time: ' + DEFAULT_TEST_EXECUTION_TIMEOUT);
 	}
-	if(undefined === window.DUMB_PREVENTER_WATCHDOG_TIME){
-		window.DUMB_PREVENTER_WATCHDOG_TIME = DEFAULT_DUMB_PREVENTER_WATCHDOG;
-	}else if(!isFinite(window.DUMB_PREVENTER_WATCHDOG_TIME)){
-		window.DUMB_PREVENTER_WATCHDOG_TIME = DEFAULT_DUMB_PREVENTER_WATCHDOG;
-		logError('DUMB_PREVENTER_WATCHDOG_TIME is not a number. Defined an default time: ' + DEFAULT_WATCHDOG);
+	if(undefined === window.TEST_LOAD_TIMEOUT){
+		window.TEST_LOAD_TIMEOUT = DEFAULT_TEST_LOAD_TIMEOUT;
+	}else if(!isFinite(window.TEST_LOAD_TIMEOUT)){
+		window.TEST_LOAD_TIMEOUT = DEFAULT_TEST_LOAD_TIMEOUT;
+		logError('TEST_LOAD_TIMEOUT is not a number. Defined an default time: ' + DEFAULT_TEST_EXECUTION_TIMEOUT);
 	}
 
 	function logError(msg){
@@ -749,6 +811,24 @@ define([
 	};
 
 	function log(msg){
+		if(!!window._phantom) {
+			setTimeout(function () {
+				var eMsg = '';
+				eMsg += '\n\n';
+				eMsg += '\u001b[1;36m\n';
+				eMsg += '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n';
+				eMsg += 'INFO: ';
+				eMsg += '\n';
+				eMsg += msg
+				eMsg += '\n';
+				eMsg += '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n';
+				eMsg += '\n\u001b[0m';
+				throw new Error(eMsg);
+			},1);
+		}
+
+
+
 		return (!!console && !!console.log ?
 			console.log(msg) :
 			null

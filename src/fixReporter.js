@@ -18,12 +18,12 @@ define([], function(){
 			childTopLevelSuites = [],
 			suites = 0;
 			oMethods = {},
-			functionNames = [
+			functionNames = [ // THE ORDER IS IMPORTANT!!! DON'T CHANGE
 				 "reportRunnerStarting",
 				 "reportRunnerResults",
-				 "reportSuiteResults",
 				 "reportSpecStarting",
 				 "reportSpecResults",
+				 "reportSuiteResults",
 				 "log"
 		   ],
 		   queueBySpecFile = {},
@@ -46,6 +46,10 @@ define([], function(){
 			}
 		}
 
+		/**
+		 * The queue is recreated, because the spec files can be executed many times.
+		 * @return {[type]} [description]
+		 */
 		function buildQueue(){
 			var sF, i, j;
 			queue = [];
@@ -112,12 +116,14 @@ define([], function(){
 		reporter.onFinishSuite = function(){
 			var specs = window.isolatedRunner.getSpecs(), spec;
 			// FIX SUITES IDS
+			/*
 			for(var i = 0; i < specs.length; i++){
 				spec = specs[i];
 				if(!childSuites.hasOwnProperty(spec.suite.getFullName()) ){
 					childSuites[ spec.suite.getFullName() ] = spec.suite;
 				}
 			}
+			*/
 			childSpecs = specs; // parentRunner will return this array
 
 			if(!!oMethods.reportRunnerStarting){
