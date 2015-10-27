@@ -1079,20 +1079,28 @@ SOFTWARE.
 			var result = results[suite.id], m;
 			if (!!result) {
 	
-				var txt = suite.name + ': ' + result.result.toUpperCase();
+				var txt = suite.name + ': ';
 				var i;
 	
 				if (result.result !== 'passed') {
+					txt += result.result.toUpperCase();
+	
 					for (i in result.messages) {
 						if (result.messages.hasOwnProperty(i)) {
 							m = result.messages[i];
 							if(m.actual === undefined && m.matcherName  === undefined && m.expected === undefined){
-								txt += '\n' + tabs + '\t' + m.message + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+								txt += '\n' + tabs + '\t' + m.message;
 							}else{
-								txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+								txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
 							}
+	
+							txt += ' ('+ (m.passed_ ? 'PASSED': m.skipped ? 'SKIPPED' : 'FAILED')+')';
 						}
 					}
+				}
+	
+				if(result.messages.length === 0) {
+					txt += 'SKIPPED';
 				}
 	
 	
@@ -1104,7 +1112,7 @@ SOFTWARE.
 	
 				return txt;
 			} else {
-				return suite.name + ': unknow';
+				return suite.name + ': SKIPPED';
 	
 			}
 		}
@@ -1478,7 +1486,6 @@ SOFTWARE.
 								}
 								me._executeBeforeExecuteTests();
 	
-								jasmine.getEnv().addReporter(me._reporter);
 								if(!!me.getExternalReporter()){
 									jasmine.getEnv().addReporter(me.getExternalReporter());
 								}
@@ -1593,6 +1600,9 @@ SOFTWARE.
 				//**********************************************************************
 	
 				_onFinishAloneMode: function(){
+					if(!this._parentWindow){
+						this._printReporter(this._reporter);
+					}
 					this.childFinish(route.getCurrentSpecFile(), this._reporter);
 	
 					return this._onJasmineFinish.apply(jasmine.getEnv().currentRunner(), arguments);
@@ -2057,6 +2067,17 @@ SOFTWARE.
 			return isolatedRunner;
 		}
 	
+		function colorize(txt, baseColor){
+			if(baseColor === undefined) {
+				baseColor = '\u001b[0m';
+			}
+	
+			return txt.replace(/PASSED/g, '\u001b[1;32mPASSED' + baseColor)
+					.replace(/FAILED/g, '\u001b[1;31mFAILED' + baseColor)
+					.replace(/SKIPPED/g, '\u001b[1;33mSKIPPED' + baseColor)
+			;
+		}
+	
 		function logError(msg){
 			return (!!window.console && !!window.console.error ?
 				window.console.error(msg) :
@@ -2071,11 +2092,11 @@ SOFTWARE.
 					eMsg += '\n\n';
 					eMsg += '\u001b[1;36m\n';
 					eMsg += '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n';
-					eMsg += 'INFO: ';
+					eMsg += '\u001b[37mINFO: ';
 					eMsg += '\n';
-					eMsg += msg;
+					eMsg += colorize(msg, '\u001b[37m');
 					eMsg += '\n';
-					eMsg += '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n';
+					eMsg += '\u001b[1;36m>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n';
 					eMsg += '\n\u001b[0m';
 					throw new Error(eMsg);
 				},1);

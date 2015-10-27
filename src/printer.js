@@ -51,20 +51,28 @@ define([], function(){
 		var result = results[suite.id], m;
 		if (!!result) {
 
-			var txt = suite.name + ': ' + result.result.toUpperCase();
+			var txt = suite.name + ': ';
 			var i;
 
 			if (result.result !== 'passed') {
+				txt += result.result.toUpperCase();
+
 				for (i in result.messages) {
 					if (result.messages.hasOwnProperty(i)) {
 						m = result.messages[i];
 						if(m.actual === undefined && m.matcherName  === undefined && m.expected === undefined){
-							txt += '\n' + tabs + '\t' + m.message + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+							txt += '\n' + tabs + '\t' + m.message;
 						}else{
-							txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected + ' ('+ (m.passed_ ? 'PASSED': 'FAILED')+')';
+							txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
 						}
+
+						txt += ' ('+ (m.passed_ ? 'PASSED': m.skipped ? 'SKIPPED' : 'FAILED')+')';
 					}
 				}
+			}
+
+			if(result.messages.length === 0) {
+				txt += 'SKIPPED';
 			}
 
 
@@ -76,7 +84,7 @@ define([], function(){
 
 			return txt;
 		} else {
-			return suite.name + ': unknow';
+			return suite.name + ': SKIPPED';
 
 		}
 	}

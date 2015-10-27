@@ -167,7 +167,6 @@ define([
 							}
 							me._executeBeforeExecuteTests();
 
-							jasmine.getEnv().addReporter(me._reporter);
 							if(!!me.getExternalReporter()){
 								jasmine.getEnv().addReporter(me.getExternalReporter());
 							}
@@ -282,6 +281,9 @@ define([
 			//**********************************************************************
 
 			_onFinishAloneMode: function(){
+				if(!this._parentWindow){
+					this._printReporter(this._reporter);
+				}
 				this.childFinish(route.getCurrentSpecFile(), this._reporter);
 
 				return this._onJasmineFinish.apply(jasmine.getEnv().currentRunner(), arguments);
@@ -746,6 +748,17 @@ define([
 		return isolatedRunner;
 	}
 
+	function colorize(txt, baseColor){
+		if(baseColor === undefined) {
+			baseColor = '\u001b[0m';
+		}
+
+		return txt.replace(/PASSED/g, '\u001b[1;32mPASSED' + baseColor)
+				.replace(/FAILED/g, '\u001b[1;31mFAILED' + baseColor)
+				.replace(/SKIPPED/g, '\u001b[1;33mSKIPPED' + baseColor)
+		;
+	}
+
 	function logError(msg){
 		return (!!window.console && !!window.console.error ?
 			window.console.error(msg) :
@@ -760,11 +773,11 @@ define([
 				eMsg += '\n\n';
 				eMsg += '\u001b[1;36m\n';
 				eMsg += '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n';
-				eMsg += 'INFO: ';
+				eMsg += '\u001b[37mINFO: ';
 				eMsg += '\n';
-				eMsg += msg;
+				eMsg += colorize(msg, '\u001b[37m');
 				eMsg += '\n';
-				eMsg += '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n';
+				eMsg += '\u001b[1;36m>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n';
 				eMsg += '\n\u001b[0m';
 				throw new Error(eMsg);
 			},1);
