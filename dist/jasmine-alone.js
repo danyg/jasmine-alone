@@ -1337,23 +1337,6 @@ SOFTWARE.
 			DEFAULT_TEST_LOAD_TIMEOUT = 3000
 		;
 	
-		function addClass(e, className){
-			if(e.className.indexOf(className) === -1){
-				e.className = e.className === '' ? className : e.className + ' ' + className;
-			}
-		}
-	
-		function removeClass(e, className){
-			if(e.className.indexOf(className) !== -1){
-				if(e.className === className){
-					e.className = '';
-				} else {
-					var regx = new RegExp('[\s]?' + className + '[\s]?', 'g');
-					e.className = e.className.replace(regx, '');
-				}
-			}
-		}
-	
 		function defineIsolatedRunner(){ // because lint
 			var isolatedRunner = {
 				ISOLATED: false,
@@ -1461,13 +1444,13 @@ SOFTWARE.
 	
 				_requireErrorHandler: function(err) {
 					var failedId = err.requireModules && err.requireModules[0],
-						currentSpecFile = "MAIN PROCESS";
+						currentSpecFile = 'MAIN PROCESS';
 	
 					if(route.isAlone()) {
 						currentSpecFile = route.getCurrentSpecFile();
 					}
 	
-					throw new Error("Error Loading Dependencies in [" + currentSpecFile + "], dependencie not found: [" + failedId + "]");
+					throw new Error('Error Loading Dependencies in [' + currentSpecFile + '], dependencie not found: [' + failedId + ']');
 				},
 	
 				/**
@@ -1490,7 +1473,9 @@ SOFTWARE.
 							this._onFinish = this._onFinishAloneMode;
 	
 							require(this._specs, function(){
-								me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
+								if(!!me._parentWindow.isolatedRunner){
+									me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
+								}
 								me._executeBeforeExecuteTests();
 	
 								jasmine.getEnv().addReporter(me._reporter);
@@ -1545,31 +1530,6 @@ SOFTWARE.
 				//**********************************************************************
 				// CHILDS API
 				//**********************************************************************
-	
-				setHeight: function(specFile, win){
-					return;
-	
-					if(route.isAlone()){
-						if(this._isRunningInIframe){
-							this._parentWindow.isolatedRunner.setHeight(specFile, win);
-						}
-						// else in case that is executed alone but outside of the iframe
-						// we won't need to call the parentWindow
-					} else {
-						// executed on PARENT
-	
-						var height = win.getComputedStyle(win.document.body).height;
-						height = parseInt(height.replace('px', ''), 10) + 20;
-	
-	//					this._iframe.style.height = height + 'px';
-	
-						// @todo TODO the specFile is not for the log, this is only for lint
-						// the specFile could be used to set the height of the specified iframe
-						// if in some moment we return to use a iframe for every spec
-						// instead to use the same for every one
-						log(specFile + ' setHeight: ' + height);
-					}
-				},
 	
 				onChildStart: function(specFile) {
 					this._defaultReporter._ExecutingSpecFile(specFile);
@@ -1633,8 +1593,6 @@ SOFTWARE.
 				//**********************************************************************
 	
 				_onFinishAloneMode: function(){
-					clearInterval(this._setHeightInterval);
-					this.setHeight(route.getCurrentSpecFile(), window);
 					this.childFinish(route.getCurrentSpecFile(), this._reporter);
 	
 					return this._onJasmineFinish.apply(jasmine.getEnv().currentRunner(), arguments);
@@ -1697,8 +1655,6 @@ SOFTWARE.
 				_prepareAlone: function(){
 					this.ISOLATED = false;
 	
-	//				this._setHeightInterval = setInterval(this.setHeight.bind(this), 300);
-	
 					this._specs = this._findSpecs();
 					tests.setRunner(this);
 					tests.createTestsObjects(this._specs);
@@ -1709,7 +1665,7 @@ SOFTWARE.
 	
 				_createDOMContext: function(){
 					this._containerElement = document.createElement('div');
-					this._containerElement.id = "isolatedTests";
+					this._containerElement.id = 'isolatedTests';
 	
 					this._specList = document.createElement('dl');
 					this._specList.className = 'isolated-test-list';
@@ -1795,7 +1751,7 @@ SOFTWARE.
 					this._clearDumbPreventerWatchDog();
 	
 					if(timeout){
-						log("TIMEOUT for: " + this.getCurrentTestObj().getSpecFile());
+						log('TIMEOUT for: ' + this.getCurrentTestObj().getSpecFile());
 						this.getCurrentTestObj().markAsTimeout();
 					}
 	
@@ -1852,14 +1808,14 @@ SOFTWARE.
 					var me = this;
 					if(!!window.reporter){
 						this._defaultReporter = window.reporter;
-					}else{
-						if(!!window._phantom){
-							this._defaultReporter = new jasmine.JsApiReporter;
-						}else{
+					} else {
+						if (!!window._phantom) {
+							this._defaultReporter = new jasmine.JsApiReporter();
+						} else {
 							if(route.isAlone()){
-								this._defaultReporter = new jasmine.HtmlReporter;
+								this._defaultReporter = new jasmine.HtmlReporter();
 							}else{
-								this._defaultReporter = new HtmlReporter;
+								this._defaultReporter = new HtmlReporter();
 								jasmine.getEnv().specFilter = function(spec) {
 									return me._defaultReporter.specFilter(spec);
 								};
@@ -1977,7 +1933,7 @@ SOFTWARE.
 					var timeA = this._timeForSpecFile[specFile][timeKeyA];
 					var timeB = this._timeForSpecFile[specFile][timeKeyB];
 	
-					return (timeA - timeB).toString() + "ms";
+					return (timeA - timeB).toString() + 'ms';
 				},
 	
 				_printReporter: function(reporter, specFile){
@@ -2015,7 +1971,7 @@ SOFTWARE.
 				},
 	
 				getSpecs: function(){
-					var specs = [], specFile, spec, i;
+					var specs = [], specFile, i;
 					for(i = 0; i < this._specs.length; i++){
 						specFile = this._specs[i];
 						if(this._childSpecsObjectsBySpecFile.hasOwnProperty(specFile)){
@@ -2101,6 +2057,74 @@ SOFTWARE.
 			return isolatedRunner;
 		}
 	
+		function logError(msg){
+			return (!!window.console && !!window.console.error ?
+				window.console.error(msg) :
+				window.alert(msg) // throw new error can breaks the execution
+			);
+		}
+	
+		function log(msg){
+			if(!!window._phantom) {
+				setTimeout(function () {
+					var eMsg = '';
+					eMsg += '\n\n';
+					eMsg += '\u001b[1;36m\n';
+					eMsg += '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n';
+					eMsg += 'INFO: ';
+					eMsg += '\n';
+					eMsg += msg;
+					eMsg += '\n';
+					eMsg += '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n';
+					eMsg += '\n\u001b[0m';
+					throw new Error(eMsg);
+				},1);
+			}
+	
+			return (!!window.console && !!window.console.log ?
+				window.console.log(msg) :
+				null
+			);
+		}
+	
+		function isArray(o){
+			// @todo TODO change this to be CrossBrowser and also accept OLD Browsers
+			return Array.isArray(o);
+		}
+	
+		function findPos(obj) {
+			var curtop = 0;
+			if (obj.offsetParent) {
+	
+				do {
+					curtop += obj.offsetTop;
+				} while (!!(obj = obj.offsetParent));
+			}
+	
+			return curtop;
+		}
+	
+		function getHeight(element){
+			return parseInt(window.getComputedStyle(element).height.replace('px', ''), 10) || 0;
+		}
+	
+		function addClass(e, className){
+			if(e.className.indexOf(className) === -1){
+				e.className = e.className === '' ? className : e.className + ' ' + className;
+			}
+		}
+	
+		function removeClass(e, className){
+			if(e.className.indexOf(className) !== -1){
+				if(e.className === className){
+					e.className = '';
+				} else {
+					var regx = new RegExp('[\\s]?' + className + '[\\s]?', 'g');
+					e.className = e.className.replace(regx, '');
+				}
+			}
+		}
+	
 		if(undefined === window.TEST_EXECUTION_TIMEOUT){
 			window.TEST_EXECUTION_TIMEOUT = DEFAULT_TEST_EXECUTION_TIMEOUT;
 		}else if(!isFinite(window.TEST_EXECUTION_TIMEOUT)){
@@ -2112,57 +2136,6 @@ SOFTWARE.
 		}else if(!isFinite(window.TEST_LOAD_TIMEOUT)){
 			window.TEST_LOAD_TIMEOUT = DEFAULT_TEST_LOAD_TIMEOUT;
 			logError('TEST_LOAD_TIMEOUT is not a number. Defined an default time: ' + DEFAULT_TEST_EXECUTION_TIMEOUT);
-		}
-	
-		function logError(msg){
-			return (!!console && !!console.error ?
-				console.error(msg) :
-				alert(msg) // throw new error can breaks the execution
-			);
-		};
-	
-		function log(msg){
-			if(!!window._phantom) {
-				setTimeout(function () {
-					var eMsg = '';
-					eMsg += '\n\n';
-					eMsg += '\u001b[1;36m\n';
-					eMsg += '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n';
-					eMsg += 'INFO: ';
-					eMsg += '\n';
-					eMsg += msg
-					eMsg += '\n';
-					eMsg += '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n';
-					eMsg += '\n\u001b[0m';
-					throw new Error(eMsg);
-				},1);
-			}
-	
-	
-	
-			return (!!console && !!console.log ?
-				console.log(msg) :
-				null
-			);
-		};
-	
-		function isArray(o){
-			// @todo TODO change this to be CrossBrowser and also accept OLD Browsers
-			return Array.isArray(o);
-		}
-	
-		function findPos(obj) {
-			var curtop = 0;
-			if (obj.offsetParent) {
-				do {
-					curtop += obj.offsetTop;
-				} while (obj = obj.offsetParent);
-			return curtop;
-			}
-		}
-	
-		function getHeight(element){
-			return parseInt(window.getComputedStyle(element).height.replace('px', ''), 10) || 0;
 		}
 	
 		var isolatedRunner = defineIsolatedRunner();
