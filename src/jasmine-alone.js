@@ -162,7 +162,7 @@ define([
 						this._onFinish = this._onFinishAloneMode;
 
 						require(this._specs, function(){
-							if(!!me._parentWindow.isolatedRunner){
+							if(!!me._parentWindow && !!me._parentWindow.isolatedRunner){
 								me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 							}
 							me._executeBeforeExecuteTests();
