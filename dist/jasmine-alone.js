@@ -1072,8 +1072,9 @@ SOFTWARE.
 		}
 	
 		function printSuite(suite, results, tabs) {
+			var tabChar = '    ';
 			if (undefined === tabs) {
-				tabs = '\t';
+				tabs = tabChar;
 			}
 	
 			var result = results[suite.id], m;
@@ -1089,9 +1090,9 @@ SOFTWARE.
 						if (result.messages.hasOwnProperty(i)) {
 							m = result.messages[i];
 							if(m.actual === undefined && m.matcherName  === undefined && m.expected === undefined){
-								txt += '\n' + tabs + '\t' + m.message;
+								txt += '\n' + tabs + tabChar + m.message;
 							}else{
-								txt += '\n' + tabs + '\t' + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
+								txt += '\n' + tabs + tabChar + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
 							}
 	
 							txt += ' ('+ (m.passed_ ? 'PASSED': m.skipped ? 'SKIPPED' : 'FAILED')+')';
@@ -1101,12 +1102,14 @@ SOFTWARE.
 	
 				if(result.messages.length === 0) {
 					txt += 'SKIPPED';
+				} else {
+					txt += 'PASSED';
 				}
 	
 	
 				for (i in suite.children) {
 					if (suite.children.hasOwnProperty(i)) {
-						txt += '\n' + tabs + printSuite(suite.children[i], results, tabs + '\t');
+						txt += '\n' + tabs + printSuite(suite.children[i], results, tabs + tabChar);
 					}
 				}
 	
