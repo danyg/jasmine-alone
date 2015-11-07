@@ -24,7 +24,7 @@ SOFTWARE.
 
 (function() {
 
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/Test.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\Test.js
 	/*
 	 *
 	 *  @overview
@@ -199,7 +199,7 @@ SOFTWARE.
 	});
 	
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/fixJasmineXit.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\fixJasmineXit.js
 	define('/__jasmine-alone__/fixJasmineXit', [], function(){
 		'use strict';
 	
@@ -287,7 +287,7 @@ SOFTWARE.
 	
 	});
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/fixReporter.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\fixReporter.js
 	/*
 	 *
 	 *  @overview
@@ -382,6 +382,7 @@ SOFTWARE.
 				}
 			};
 			reporter.reportRunnerResults = function(){};
+	
 			if(!!reporter.summarize_){
 				reporter.summarize_ = function(suiteOrSpec) {
 					var isSuite = !!suiteOrSpec.before_ && suiteOrSpec.after_;
@@ -436,7 +437,7 @@ SOFTWARE.
 				}
 	
 				if(!!oMethods.reportRunnerResults){
-					oMethods.reportRunnerResults(reporter, parentRunner);
+					oMethods.reportRunnerResults.call(reporter, parentRunner);
 				}else{
 					runner.finished = true;
 				}
@@ -448,7 +449,7 @@ SOFTWARE.
 	
 	});
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/jasmine-html-isolated.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\jasmine-html-isolated.js
 	/* jshint ignore:start */
 	define('/__jasmine-alone__/jasmine-html-isolated', [], function() {
 	
@@ -1025,7 +1026,7 @@ SOFTWARE.
 	});
 	/* jshint ignore:end */
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/printer.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\printer.js
 	/*
 	 *
 	 *  @overview
@@ -1124,7 +1125,7 @@ SOFTWARE.
 	});
 	
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/route.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\route.js
 	/*
 	 *
 	 *  @overview
@@ -1173,7 +1174,7 @@ SOFTWARE.
 		return route;
 	});
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/tests.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\tests.js
 	/*
 	 *
 	 *  @overview
@@ -1310,7 +1311,7 @@ SOFTWARE.
 		return tests;
 	});
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/jasmine-alone.css
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\jasmine-alone.css
 	!(function() {
 		var s = document.createElement('style');
 		s.setAttribute('type', 'text/css');
@@ -1319,7 +1320,7 @@ SOFTWARE.
 	}());
 	
 	
-	// ** @file /scrumdata/workspaces/tests/jasmine-alone/src/jasmine-alone.js
+	// ** @file D:\Dropbox\DEVEL\JasmineAlone\sources\src\jasmine-alone.js
 	/*
 	 *
 	 *  @overview
