@@ -75,7 +75,7 @@ define(['./route'], function(route){
 			this._listElement.className += ' timeout';
 		}
 	};
-	
+
 	Test.prototype.getElement = function(){
 		return this._listElement;
 	};
@@ -93,7 +93,7 @@ define(['./route'], function(route){
 			this._listElement.className += ' timeout';
 		}
 	};
-	
+
 
 	Test.prototype.onFinish = function(passedState, internal){
 		this._tE = Date.now();
@@ -118,7 +118,7 @@ define(['./route'], function(route){
 		var a = document.createElement('a');
 		this._timeCounter = document.createElement('span');
 		this._timeCounter.className = 'time-counter';
-		this._runButton = document.createElement('button'),
+		this._runButton = document.createElement('button');
 
 		this._runButton.innerHTML = 'Run';
 		this._runButton.onclick = this.run.bind(this);

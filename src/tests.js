@@ -46,11 +46,6 @@ define(['./route', './Test'], function(route, Test){
 			return id;
 		},
 
-		createIframeForSpec: function(specFile){
-			var testObj = new Iframe(specFile, this);
-			this._add(testObj);
-		},
-
 		addIframeToDOM: function(testObj){
 			var parent = this._getParentDOMElement();
 			this._log('Loading: ' + testObj.getSpecFile());
@@ -94,7 +89,7 @@ define(['./route', './Test'], function(route, Test){
 			this._tests.push(testObj);
 		},
 
-		_getParentDOMElement: function(testObj){
+		_getParentDOMElement: function(){
 			var b = document.getElementById('Specs');
 			if(!b){
 				b = document.body;

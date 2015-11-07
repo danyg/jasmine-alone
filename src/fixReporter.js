@@ -7,28 +7,28 @@
 
 define([], function(){
 
+	'use strict';
+
 	function fixReporter(reporter){
 		var parentRunner = jasmine.getEnv().currentRunner()//,
 //			reporter = getReporter()
 		;
 
-		var startedAt = new Date,
+		var startedAt = new Date(),
 			childSpecs = [],
-			childSuites = {},
 			childTopLevelSuites = [],
-			suites = 0;
 			oMethods = {},
 			functionNames = [ // THE ORDER IS IMPORTANT!!! DON'T CHANGE
-				 "reportRunnerStarting",
-				 "reportRunnerResults",
-				 "reportSpecStarting",
-				 "reportSpecResults",
-				 "reportSuiteResults",
-				 "log"
-		   ],
-		   queueBySpecFile = {},
-		   specFilesOrder = [],
-		   queue = []
+				'reportRunnerStarting',
+				'reportRunnerResults',
+				'reportSpecStarting',
+				'reportSpecResults',
+				'reportSuiteResults',
+				'log'
+			],
+			queueBySpecFile = {},
+			specFilesOrder = [],
+			queue = []
 		;
 
 		function proxyMethod(method){
@@ -82,12 +82,13 @@ define([], function(){
 
 		reporter.reportRunnerStarting = function(runner){
 			var specs = runner.specs(),
-				topSuites = runner.topLevelSuites()
+				topSuites = runner.topLevelSuites(),
+				i
 			;
-			for(var i = 0; i < specs.length; i++){
+			for(i = 0; i < specs.length; i++){
 				childSpecs.push(specs[i]);
 			}
-			for(var i = 0; i < topSuites.length; i++){
+			for(i = 0; i < topSuites.length; i++){
 				childTopLevelSuites.push(topSuites[i]);
 			}
 		};
@@ -115,25 +116,14 @@ define([], function(){
 		}
 
 		reporter.onFinishSuite = function(){
-			var specs = window.isolatedRunner.getSpecs(), spec;
-			// FIX SUITES IDS
-			/*
-			for(var i = 0; i < specs.length; i++){
-				spec = specs[i];
-				if(!childSuites.hasOwnProperty(spec.suite.getFullName()) ){
-					childSuites[ spec.suite.getFullName() ] = spec.suite;
-				}
-			}
-			*/
-			childSpecs = specs; // parentRunner will return this array
-
 			if(!!oMethods.reportRunnerStarting){
 				oMethods.reportRunnerStarting.call(reporter, parentRunner, startedAt);
 			}
-			var a;
 			// clean reporter
 			// build queue
 			buildQueue();
+
+			var method,args,a;
 
 			for(var i = 0; i < queue.length; i++){
 				try{
@@ -149,7 +139,7 @@ define([], function(){
 			if(!!oMethods.reportRunnerResults){
 				oMethods.reportRunnerResults.call(reporter, parentRunner);
 			}else{
-				runner.finished = true;
+				parentRunner.finished = true;
 			}
 		};
 

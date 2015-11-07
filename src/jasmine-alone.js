@@ -11,7 +11,8 @@ define([
 	'./printer',
 	'./fixReporter',
 	'./jasmine-html-isolated',
-	'./fixJasmineXit'
+	'./fixJasmineXit',
+	'css!jasmine-alone'
 ], function(
 	route,
 	tests,
@@ -151,7 +152,7 @@ define([
 
 				if(!this.init()){
 					// do nothing?
-					require(this._specs, function(){
+					window.require(this._specs, function(){
 						me._executeBeforeExecuteTests();
 						jasmine.getEnv().execute();
 					}, this._requireErrorHandler.bind(this));
@@ -161,7 +162,7 @@ define([
 					if(route.isAlone()){
 						this._onFinish = this._onFinishAloneMode;
 
-						require(this._specs, function(){
+						window.require(this._specs, function(){
 							if(!!me._parentWindow && !!me._parentWindow.isolatedRunner){
 								me._parentWindow.isolatedRunner.onChildStart(route.getCurrentSpecFile());
 							}

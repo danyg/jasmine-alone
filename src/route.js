@@ -11,7 +11,7 @@ define([], function(){
 
 	function s(){
 		return window.location.search.toString();
-	};
+	}
 
 	var route = {
 

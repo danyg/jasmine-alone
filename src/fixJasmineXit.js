@@ -2,7 +2,7 @@ define([], function(){
 	'use strict';
 
 	var oldIt = jasmine.Env.prototype.it;
-	var oldDescribe = jasmine.Env.prototype.describe;
+	// var oldDescribe = jasmine.Env.prototype.describe;
 	var oldBeforeEach = jasmine.Env.prototype.beforeEach;
 	var oldAfterEach = jasmine.Env.prototype.afterEach;
 

@@ -88,17 +88,36 @@ module.exports = function( grunt ) {
 			}
 		},
 
-		pkg: grunt.file.readJSON('package.json'),
+		requirejs: {
+			compile: {
+				options: {
+					baseUrl: 'src/',
+					paths: {
+						'css': '../libs/require-css/css',
+						'css-builder': '../libs/require-css/css-builder',
+						'normalize': '../libs/require-css/normalize'
+					},
 
-		clean: {
-			build: ['dist/*']
+					include: ['../libs/almond/almond', 'jasmine-alone', '../libs/require-css/css.min'],
+					out: 'dist/jasmine-alone.js',
+
+					// optimize: 'none',
+
+					wrap: {
+						startFile: 'src/wrap.begin',
+						endFile: 'src/wrap.end'
+					}
+				}
+			}
 		},
+
+		pkg: grunt.file.readJSON('package.json'),
 
 		jshint: {
 			options: {
 				jshintrc: '.jshintrc'
 			},
-			all: ['Gruntfile.js', '<%= webapp.testPath %>/specs/dev/**/*spec.js', '<%= webapp.srcPath %>/**/*.js'],
+			all: ['Gruntfile.js', '<%= webapp.testPath %>/specs/dev/**/*spec.js', '<%= webapp.srcPath %>/**/*.js', '!<%= webapp.srcPath %>/jasmine-html-isolated.js'],
 		},
 
 		connect: {
@@ -173,17 +192,6 @@ module.exports = function( grunt ) {
 			}
 		},
 
-		requirejs: {
-			compile: {
-				options: {
-					baseUrl: '',
-					name: '<%= webapp.srcDir %>/jasmine-durandal-1.3x',
-					mainConfigFile: 'buildConfig.js',
-					out: '<%= webapp.buildDir %>/jasmine-durandal.js'
-				}
-			}
-		},
-
 		watch: {
 			build: {
 				files: ['<%= webapp.buildDir %>/**/*.js'],
@@ -200,7 +208,6 @@ module.exports = function( grunt ) {
 	});
 
 // Loading plugin(s)
-	grunt.loadNpmTasks('grunt-contrib-clean');
 	grunt.loadNpmTasks('grunt-contrib-connect');
 	grunt.loadNpmTasks('grunt-contrib-jasmine');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -212,38 +219,12 @@ module.exports = function( grunt ) {
 
 //Resgistering Tasks
 	grunt.registerTask('build', [
-//		'jshint',
-		'clean',
-		'exec:build_13'//,
-//		'requirejs:compile'
-//		'jasmine:build_13'
+		'jshint',
+		'requirejs:compile'
 	]);
-//
-//	grunt.registerTask('default', [
-//		'jshint',
-//		'exec:bower',
-//		'jasmine:dev',
-//		'connect:dev:livereload',
-//		'open:dev',
-//		'watch:dev'
-//	]);
-//
-//	grunt.registerTask('test', [
-//		'jshint',
-//		'exec:bower',
-//		'connect:dev',
-//		'jasmine:tdd'
-//	]);
-//	grunt.registerTask('tdd', [
-//		'jshint',
-//		'exec:bower',
-//		'connect:dev:livereload',
-//		'jasmine:tdd:build',
-//		'open:tdd',
-//		'watch:tdd'
-//	]);
 
-	grunt.registerTask('notest', ['jshint', 'connect:dev:livereload', 'open:notest', 'watch:dev']);
-
+	grunt.registerTask('default', [
+		'build'
+	]);
 
 };

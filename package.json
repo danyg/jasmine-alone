@@ -1,25 +1,29 @@
 {
-	"name": "jasmine-alone",
-	"description": "A jasmine tool to run the specs in an isolated way",
-	"version": "1.0.0",
-	"dependencies": {
-	},
-	"devDependencies": {
-	    "grunt": "~0.4.1",
-	    "grunt-contrib-jasmine": "~0.5.2",
-	    "grunt-template-jasmine-requirejs-preloader": "~0.0.3",
-	    "grunt-contrib-connect": "~0.5.0",
-	    "grunt-contrib-jshint": "~0.6.4",
-	    "grunt-contrib-watch": "~0.5.3",
-	    "grunt-contrib-clean": "~0.5.0",
-	    "connect-livereload": "~0.3.0",
-	    "grunt-contrib-requirejs": "~2.1.17",
-	    "grunt-exec": "~0.4.5",
-	    "grunt-open": "~0.2.0",
-	    "mout": "~0.7.1"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/danyg/jasmine-alone.git"
-	}
+  "name": "jasmine-alone",
+  "description": "A jasmine tool to run the specs in an isolated way",
+  "version": "1.0.0",
+  "scripts": {
+  	"install": "bower install",
+  	"build": "grunt build"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-jasmine": "~0.5.2",
+    "grunt-template-jasmine-requirejs-preloader": "~0.0.3",
+    "grunt-contrib-connect": "~0.5.0",
+    "grunt-contrib-jshint": "^0.11.3",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-contrib-clean": "~0.5.0",
+    "connect-livereload": "~0.3.0",
+    "grunt-contrib-requirejs": "^0.4.4",
+    "grunt-exec": "~0.4.5",
+    "grunt-open": "~0.2.0",
+    "mout": "~0.7.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danyg/jasmine-alone.git"
+  }
 }

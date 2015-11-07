@@ -1,8 +1,7 @@
 {
   "name": "jasmine-alone",
   "version": "1.0.0",
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "homepage": "https://github.com/danyg/jasmine-alone",
   "authors": [
     "danyg <dalgo86@gmail.com>"
@@ -25,5 +24,9 @@
     "libs/",
     "test",
     "tests"
-  ]
+  ],
+  "dependencies": {
+    "almond": "~0.3.1",
+    "require-css": "~0.1.8"
+  }
 }
