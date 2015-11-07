@@ -92,6 +92,7 @@ define([], function(){
 			}
 		};
 		reporter.reportRunnerResults = function(){};
+
 		if(!!reporter.summarize_){
 			reporter.summarize_ = function(suiteOrSpec) {
 				var isSuite = !!suiteOrSpec.before_ && suiteOrSpec.after_;
@@ -146,7 +147,7 @@ define([], function(){
 			}
 
 			if(!!oMethods.reportRunnerResults){
-				oMethods.reportRunnerResults(reporter, parentRunner);
+				oMethods.reportRunnerResults.call(reporter, parentRunner);
 			}else{
 				runner.finished = true;
 			}
