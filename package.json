@@ -1,7 +1,7 @@
 {
 	"name": "jasmine-alone",
 	"description": "A jasmine tool to run the specs in an isolated way",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"dependencies": {
 	},
 	"devDependencies": {

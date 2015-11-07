@@ -1,8 +1,7 @@
 {
   "name": "jasmine-alone",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "devDependencies": {
-	"jasmine": "1.3.1"
   },
   "homepage": "https://github.com/danyg/jasmine-alone",
   "authors": [
