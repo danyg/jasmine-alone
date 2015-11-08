@@ -53,11 +53,6 @@ define([
 		return this.src;
 	};
 
-	Test.prototype.run = function() {
-		this._handler.getRunner().setCurrentTestObj(this);
-		this._handler.getRunner().load();
-	};
-
 	Test.prototype.onRun = function(){
 		this._timeOut = false;
 		this._tS = Date.now();

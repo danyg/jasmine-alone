@@ -45,8 +45,7 @@ define([], function(){
 				if(!!reporter[method]){
 					oMethods[method] = reporter[method];
 					reporter[method] = function(){
-						var specFile = !!this.specFile ? this.specFile : window.isolatedRunner.getRunningSpec();
-						queueBySpecFile[specFile].push([method, arguments]);
+						queueBySpecFile[this.specFile].push([method, arguments]);
 					};
 				}
 			}catch(e){
