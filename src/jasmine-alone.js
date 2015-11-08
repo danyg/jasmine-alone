@@ -34,7 +34,7 @@ define([
 			_ix: null,
 			_specs: null,
 			_watchdogTimer: null,
-			_reporter: null,
+			_internalReporter: null,
 
 			// DOM PROPERTIES
 			_testWindow: null,
@@ -238,10 +238,10 @@ define([
 				this._specList.scrollTop = pos;
 			},
 
-			childFinish: function(specFile, reporter, childRunner){
+			onChildFinish: function(specFile, reporter, childRunner){
 				if(route.isAlone()){
 					if(this._isRunningInIframe){
-						this._parentWindow.isolatedRunner.childFinish(specFile, reporter, jasmine.getEnv().currentRunner());
+						this._parentWindow.isolatedRunner.onChildFinish(specFile, reporter, jasmine.getEnv().currentRunner());
 					}
 					// else in case that is executed alone but outside of the iframe
 					// we won't need to call the parentWindow
@@ -261,11 +261,11 @@ define([
 				}
 			},
 
-			getInternalReporter: function(){
-				return this._reporter;
+			getInternalReporter: function() {
+				return this._internalReporter;
 			},
 
-			getExternalReporter: function(){
+			getExternalReporter: function() {
 				if(route.isAlone()){
 					if(this._isRunningInIframe){
 						return this._parentWindow.isolatedRunner.getExternalReporter();
@@ -283,9 +283,9 @@ define([
 
 			_onFinishAloneMode: function(){
 				if(!this._parentWindow){
-					this._printReporter(this._reporter);
+					this._printReporter(this._internalReporter);
 				}
-				this.childFinish(route.getCurrentSpecFile(), this._reporter);
+				this.onChildFinish(route.getCurrentSpecFile(), this._internalReporter);
 
 				return this._onJasmineFinish.apply(jasmine.getEnv().currentRunner(), arguments);
 			},
@@ -296,7 +296,7 @@ define([
 				this._defaultReporter.onFinishSuite();
 				this._defaultReporter.finished = true;
 
-				this._printReporter(this._reporter);
+				this._printReporter(this._internalReporter);
 
 				removeClass(this._specList, 'failed');
 				removeClass(this._specList, 'timeout');
@@ -518,23 +518,23 @@ define([
 				}
 
 				if(window.reporter instanceof jasmine.HtmlReporter){
-					this._reporterClass = 'HtmlReporter';
+					this._internalReporterClass = 'HtmlReporter';
 					jasmine.getEnv().specFilter = function(spec) {
 						return me._defaultReporter.specFilter(spec);
 					};
 				}else if(window.reporter instanceof jasmine.JsApiReporter){
-					this._reporterClass = 'JsApiReporter';
+					this._internalReporterClass = 'JsApiReporter';
 					jasmine.getEnv().updateInterval = Number.MAX_VALUE;
 				}
 				// @todo TODO write a way to specify the reporter type from outside for custom reporters
 
-				if(!this._reporterClass){
-					this._reporterClass = 'JsApiReporter'; // default reporter...
+				if(!this._internalReporterClass) {
+					this._internalReporterClass = 'JsApiReporter'; // default reporter...
 				}
 
 				if(route.isAlone()){
-					this._reporter = new jasmine.JsApiReporter();
-					jasmine.getEnv().addReporter(this._reporter);
+					this._internalReporter = new jasmine.JsApiReporter();
+					jasmine.getEnv().addReporter(this._internalReporter);
 
 					if(!window._phantom){
 						var viewReporter = new HtmlReporter();
@@ -662,6 +662,18 @@ define([
 				this._processSpecsByFile(this._childSpecsObjectsBySpecFile[specFile], specFile, []);
 			},
 
+			_processSpecsByFile: function(specsByFile, specFile, specs){
+				var i;
+
+				for(i = 0; i < specsByFile.length; i++){
+
+					specsByFile[i].id = this._getSpecId(specsByFile[i], specFile);
+
+					this._fixSpecNSuite(specsByFile[i], specFile);
+					specs.push(specsByFile[i]);
+				}
+			},
+
 			getSpecs: function(){
 				var specs = [], specFile, i;
 				for(i = 0; i < this._specs.length; i++){
@@ -675,18 +687,6 @@ define([
 					}
 				}
 				return specs;
-			},
-
-			_processSpecsByFile: function(specsByFile, specFile, specs){
-				var i;
-
-				for(i = 0; i < specsByFile.length; i++){
-
-					specsByFile[i].id = this._getSpecId(specsByFile[i], specFile);
-
-					this._fixSpecNSuite(specsByFile[i], specFile);
-					specs.push(specsByFile[i]);
-				}
 			},
 
 			_fixSpecNSuite: function(spec, specFile) {

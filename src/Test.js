@@ -5,11 +5,21 @@
  *
  */
 
-define(['./route'], function(route){
+define([
+	'./route',
+	'./utils'
+], function(
+	route,
+	utils
+){
 
 	'use strict';
 
+	var winNum = 0;
+
 	function Test(specFile, handler){
+		this._winNum = winNum++;
+
 		this._handler = handler;
 		this._specFile = specFile;
 
@@ -21,6 +31,10 @@ define(['./route'], function(route){
 		this._lastReporter = null;
 		this._lastChildRunner = null;
 		this._passed = undefined;
+
+
+		this._watchdogTimer = null;
+		this._watchdogDumbPreventerTimer = null;
 	}
 
 	Test.prototype.getId = function(){
@@ -39,7 +53,7 @@ define(['./route'], function(route){
 		return this.src;
 	};
 
-	Test.prototype.run = function(){
+	Test.prototype.run = function() {
 		this._handler.getRunner().setCurrentTestObj(this);
 		this._handler.getRunner().load();
 	};
@@ -87,14 +101,6 @@ define(['./route'], function(route){
 		}
 	};
 
-	Test.prototype.markAsTimeout = function(){
-		if(!route.isAlone()){
-			this.onFinish(false);
-			this._listElement.className += ' timeout';
-		}
-	};
-
-
 	Test.prototype.onFinish = function(passedState, internal){
 		this._tE = Date.now();
 		this._runButton.removeAttribute('disabled');
@@ -121,7 +127,7 @@ define(['./route'], function(route){
 		this._runButton = document.createElement('button');
 
 		this._runButton.innerHTML = 'Run';
-		this._runButton.onclick = this.run.bind(this);
+		this._runButton.onclick = this.open.bind(this);
 
 		a.href = route.getURLForSpec(this._specFile);
 
@@ -166,6 +172,80 @@ define(['./route'], function(route){
 
 	Test.prototype.isTimeOut = function(){
 		return this._timeOut;
+	};
+
+	//**************************************************************************
+	// Self Running Methods
+	//**************************************************************************
+
+	Test.prototype.open = function(left, top, W, H) {
+		this.markAsLoading();
+		if(undefined !== H) {
+			this._winProps = {
+				left: left,
+				top: top,
+				W: W,
+				H: H
+			};
+		}
+
+		if(!this._watchdogTimer) {
+			this._setWatchdog();
+		}
+		this._setDumbPreventerWatchdog();
+
+		utils.log('Loading: ' + this.getSpecFile() + (!left ? '[RETRY]' : ''));
+
+		this._testWindow = window.open(
+			this.getSRC(),
+			'test_win_' + this._winNum,
+			'width=' + this._winProps.W + ', height=' + this._winProps.H + ', left=' + this._winProps.left + ', top=' + this._winProps.top + ', scrollbars=yes, resizable=yes'
+		);
+	};
+
+	Test.prototype.close = function() {
+		this._clearTimers();
+
+		this._testWindow.close();
+	};
+
+	Test.prototype._clearTimers = function() {
+		this._clearWatchDog();
+		this._clearDumbPreventerWatchDog();
+	};
+
+	Test.prototype._watchDogTimeOut = function() {
+		this._clearTimers();
+
+		this._handler.getRunner().onChildTimeOut(this.getSpecFile());
+	};
+
+	Test.prototype._clearWatchDog = function() {
+		clearTimeout(this._watchdogTimer);
+		this._watchdogTimer = null;
+	};
+
+	Test.prototype._setWatchdog = function() {
+		this._clearWatchDog();
+
+		this._watchdogTimer = setTimeout(
+			this._watchDogTimeOut.bind(this),
+			window.TEST_EXECUTION_TIMEOUT
+		);
+	};
+
+	Test.prototype._clearDumbPreventerWatchDog = function() {
+		clearTimeout(this._watchdogDumbPreventerTimer);
+		this._watchdogDumbPreventerTimer = null;
+	};
+
+	Test.prototype._setDumbPreventerWatchdog = function() {
+		this._clearDumbPreventerWatchDog();
+
+		this._watchdogDumbPreventerTimer = setTimeout(
+			this.open.bind(this),
+			window.TEST_LOAD_TIMEOUT
+		);
 	};
 
 	return Test;

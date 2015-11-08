@@ -14,18 +14,26 @@ define([], function(){
 //			reporter = getReporter()
 		;
 
+		if(reporter.__FIXED__ === true) {
+			return;
+		}
+
+		reporter.__FIXED__ = true;
+
 		var startedAt = new Date(),
 			childSpecs = [],
 			childTopLevelSuites = [],
 			oMethods = {},
 			functionNames = [ // THE ORDER IS IMPORTANT!!! DON'T CHANGE
-				'reportRunnerStarting',
 				'reportRunnerResults',
+				'reportRunnerStarting',
 				'reportSpecStarting',
 				'reportSpecResults',
 				'reportSuiteResults',
+
 				'log'
 			],
+
 			queueBySpecFile = {},
 			specFilesOrder = [],
 			queue = []
@@ -37,12 +45,11 @@ define([], function(){
 				if(!!reporter[method]){
 					oMethods[method] = reporter[method];
 					reporter[method] = function(){
-						var specFile = window.isolatedRunner.getRunningSpec();
+						var specFile = !!this.specFile ? this.specFile : window.isolatedRunner.getRunningSpec();
 						queueBySpecFile[specFile].push([method, arguments]);
 					};
 				}
 			}catch(e){
-
 			}
 		}
 
@@ -73,6 +80,10 @@ define([], function(){
 			proxyMethod(functionNames[i]);
 		}
 
+
+		reporter.__getQueue = function(){
+			return queueBySpecFile;
+		};
 		reporter._ExecutingSpecFile = function(specFile){
 			if(specFilesOrder.indexOf(specFile) === -1){
 				specFilesOrder.push(specFile);
@@ -125,7 +136,7 @@ define([], function(){
 
 			var method,args,a;
 
-			for(var i = 0; i < queue.length; i++){
+			for(var i = 0; i < queue.length; i++) {
 				try{
 					a = queue[i];
 					method = a[0];
@@ -143,6 +154,36 @@ define([], function(){
 			}
 		};
 
+		/**
+		 * Wrap the Wrapper!
+		 */
+		function getProxyFunctionForSpecAloneRunner(functionName, specFile) {
+			var wrapedMethod = reporter[functionName];
+			return function() {
+				this.specFile = specFile;
+				return wrapedMethod.apply(this, arguments);
+			};
+		}
+
+		reporter.getSpecAloneRunnerProxy = function(specFile) {
+			var keys = Object.keys(this),
+				prop,
+				proxyObject = {}
+			;
+
+			for(var i = 0; i < keys.length; i++) {
+				prop = keys[i];
+				if(typeof this[prop] === 'function') {
+					if(functionNames.indexOf(prop) !== -1) {
+						proxyObject[prop] = getProxyFunctionForSpecAloneRunner(prop, specFile);
+					} else {
+						proxyObject[prop] = this[prop].bind(this);
+					}
+				}
+			}
+
+			return proxyObject;
+		};
 	}
 
 	return fixReporter;

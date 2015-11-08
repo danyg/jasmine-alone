@@ -98,14 +98,16 @@ module.exports = function( grunt ) {
 						'normalize': '../libs/require-css/normalize'
 					},
 
-					include: ['../libs/almond/almond', 'jasmine-alone', '../libs/require-css/css.min'],
+					// include: ['../libs/almond/almond', 'jasmine-alone', '../libs/require-css/css.min'],
+					include: ['../libs/almond/almond', 'new-jasmine-alone', '../libs/require-css/css.min'],
 					out: 'dist/jasmine-alone.js',
 
-					// optimize: 'none',
+					optimize: 'none',
 
 					wrap: {
 						startFile: 'src/wrap.begin',
 						endFile: 'src/wrap.end'
+						// endFile: 'src/wrap.end.old'
 					}
 				}
 			}

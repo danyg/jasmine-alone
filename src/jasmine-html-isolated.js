@@ -320,11 +320,13 @@ define([], function() {
 		this.specComplete = function(spec) {
 			this.completeSpecCount++;
 
+			var specView;
 			if (isUndefined(this.views.specs[spec.id])) {
-				this.views.specs[spec.id] = new HtmlReporter.SpecView(spec, dom);
+				specView = this.views.specs[spec.id] = new HtmlReporter.SpecView(spec, dom);
+			} else {
+				specView = this.views.specs[spec.id];
+				specView.setSpec(spec);
 			}
-
-			var specView = this.views.specs[spec.id];
 
 			switch (specView.status()) {
 				case 'passed':
@@ -445,7 +447,7 @@ define([], function() {
 
 
 	HtmlReporter.SpecView = function(spec, dom, views) {
-		this.spec = spec;
+		this.setSpec(spec);
 		this.dom = dom;
 		this.views = views;
 
@@ -484,6 +486,10 @@ define([], function() {
 			}, 4000);
 		};
 
+	};
+
+	HtmlReporter.SpecView.prototype.setSpec = function(spec) {
+		this.spec = spec;
 	};
 
 	HtmlReporter.SpecView.prototype.status = function() {
