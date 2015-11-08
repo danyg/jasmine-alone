@@ -1626,28 +1626,26 @@ define('Test',[
 	// Self Running Methods
 	//**************************************************************************
 
-	Test.prototype.open = function(left, top, W, H) {
+	Test.prototype.open = function(retry) {
 		this.markAsLoading();
-		if(undefined !== H) {
-			this._winProps = {
-				left: left,
-				top: top,
-				W: W,
-				H: H
-			};
-		}
 
 		if(!this._watchdogTimer) {
 			this._setWatchdog();
 		}
 		this._setDumbPreventerWatchdog();
 
-		utils.log('Loading: ' + this.getSpecFile() + (!left ? '[RETRY]' : ''));
+		utils.log('Loading: ' + this.getSpecFile() + (!!retry ? '[RETRY]' : ''));
+
+		var workarea = document.getElementById('isolated-test-workarea');
+		var left = window.screenX + workarea.offsetLeft;
+		var top = window.screenY + workarea.offsetTop;
+		var W = workarea.clientWidth;
+		var H = workarea.clientHeight;
 
 		this._testWindow = window.open(
 			this.getSRC(),
 			'test_win_' + this._winNum,
-			'width=' + this._winProps.W + ', height=' + this._winProps.H + ', left=' + this._winProps.left + ', top=' + this._winProps.top + ', scrollbars=yes, resizable=yes'
+			'width=' + W + ', height=' + H + ', left=' + left + ', top=' + top + ', scrollbars=yes, resizable=yes'
 		);
 	};
 
@@ -1691,7 +1689,7 @@ define('Test',[
 		this._clearDumbPreventerWatchDog();
 
 		this._watchdogDumbPreventerTimer = setTimeout(
-			this.open.bind(this),
+			this.open.bind(this, true),
 			window.TEST_LOAD_TIMEOUT
 		);
 	};
@@ -2230,6 +2228,11 @@ define('main-runner',[
 	};
 
 	MainRunner.prototype.__checkOnFinishSuite = function() {
+		if(!this._route.isAutoStart()) {
+			this._onFinish();
+			return;
+		}
+
 		if(this._ix >= tests.getLength()) {
 			if(this._runningTests.length === 0) {
 				this._onFinish();
@@ -2249,14 +2252,9 @@ define('main-runner',[
 				testObj.markAsLoading();
 				this._markTime('loadingStart', testObj.getSpecFile());
 
-				var left = window.screenX + this.workarea.offsetLeft;
-				var top = window.screenY + this.workarea.offsetTop;
-				var W = this.workarea.clientWidth;
-				var H = this.workarea.clientHeight;
-
 				this._defaultReporter._ExecutingSpecFile(testObj.getSpecFile());
 
-				testObj.open(left, top, W, H);
+				testObj.open();
 			}
 		}
 	};
@@ -2413,9 +2411,11 @@ define('main-runner',[
  */
 
 define('spec-alone-runner.js',[
-	'./JARunner'
+	'./JARunner',
+	'./utils'
 ], function(
-	JARunner
+	JARunner,
+	utils
 ) {
 	'use strict';
 
@@ -2447,6 +2447,9 @@ define('spec-alone-runner.js',[
 
 	SpecAloneRunner.prototype._onSpecLoaded = function() {
 		this._markTime('loadingStop', this._route.getCurrentSpecFile());
+
+		this._removeLoading();
+
 		if(!!this._parentRunner){
 			this._parentRunner.onChildStart(this._route.getCurrentSpecFile());
 		}
@@ -2473,10 +2476,24 @@ define('spec-alone-runner.js',[
 	// PRIVATE METHODS
 	// *************************************************************************
 
+	SpecAloneRunner.prototype._renderLoading = function() {
+		this._loadingC = document.createElement('div');
+		utils.addClass(this._loadingC, 'JA-spinner-loader');
+		document.body.appendChild(this._loadingC);
+	};
+
+	SpecAloneRunner.prototype._removeLoading = function() {
+		this._loadingC.parentNode.removeChild(this._loadingC);
+		utils.removeClass(document.body, 'jasmine-alone-loading');
+		utils.addClass(document.body, 'jasmine-alone-whole');
+	};
 	/**
 	 * @Overwrite
 	 */
 	SpecAloneRunner.prototype._prepare = function() {
+		utils.addClass(document.body, 'jasmine-alone-loading');
+		this._renderLoading();
+
 		this._parentRunner = null;
 		if (!!window.opener) {
 			this._parentRunner = window.opener.isolatedRunner.mainRunner;
@@ -2938,7 +2955,7 @@ define('new-jasmine-alone',[
 define('../libs/require-css/css.min',[],function(){if("undefined"==typeof window)return{load:function(e,t,n){n()}};var e=document.getElementsByTagName("head")[0],t=window.navigator.userAgent.match(/Trident\/([^ ;]*)|AppleWebKit\/([^ ;]*)|Opera\/([^ ;]*)|rv\:([^ ;]*)(.*?)Gecko\/([^ ;]*)|MSIE\s([^ ;]*)|AndroidWebKit\/([^ ;]*)/)||0,n=!1,r=!0;t[1]||t[7]?n=parseInt(t[1])<6||parseInt(t[7])<=9:t[2]||t[8]?r=!1:t[4]&&(n=parseInt(t[4])<18);var o={};o.pluginBuilder="./css-builder";var a,i,s,l=function(){a=document.createElement("style"),e.appendChild(a),i=a.styleSheet||a.sheet},u=0,d=[],c=function(e){u++,32==u&&(l(),u=0),i.addImport(e),a.onload=function(){f()}},f=function(){s();var e=d.shift();return e?(s=e[1],void c(e[0])):void(s=null)},h=function(e,t){if(i&&i.addImport||l(),i&&i.addImport)s?d.push([e,t]):(c(e),s=t);else{a.textContent='@import "'+e+'";';var n=setInterval(function(){try{a.sheet.cssRules,clearInterval(n),t()}catch(e){}},10)}},p=function(t,n){var o=document.createElement("link");if(o.type="text/css",o.rel="stylesheet",r)o.onload=function(){o.onload=function(){},setTimeout(n,7)};else var a=setInterval(function(){for(var e=0;e<document.styleSheets.length;e++){var t=document.styleSheets[e];if(t.href==o.href)return clearInterval(a),n()}},10);o.href=t,e.appendChild(o)};return o.normalize=function(e,t){return".css"==e.substr(e.length-4,4)&&(e=e.substr(0,e.length-4)),t(e)},o.load=function(e,t,r){(n?h:p)(t.toUrl(e+".css"),r)},o});
 
 (function(c){var d=document,a='appendChild',i='styleSheet',s=d.createElement('style');s.type='text/css';d.getElementsByTagName('head')[0][a](s);s[i]?s[i].cssText=c:s[a](d.createTextNode(c));})
-('html, body, #isolatedTests{\n\twidth: 100%;\n\theight: 100%;\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\nbody.jasmine-alone-whole,\nbody.jasmine-alone-whole #isolatedTests{\n\toverflow: auto;\n}\n\n.isolated-test-list{\n\twidth: 30%;\n\tfloat: left;\n\theight: 100%;\n\toverflow: auto;\n\tbackground-color: #222;\n\tmargin: 0;\n\tpadding: 0;\n\tposition: relative;\n\tz-index: 2;\n}\n\n.isolated-test-list.passed{\n\tbox-shadow: 0px 0px 40px 5px #1bb41b\n}\n\n.isolated-test-list.failed{\n\tbox-shadow: 0px 0px 40px 5px #b41b1b\n}\n\n.isolated-test-list.timeout{\n\tbox-shadow: 0px 0px 40px 5px #E88809\n}\n\n.isolated-test-list dd{\n\tborder-top: solid 1px #777;\n\t-webkit-transition: background 500ms;\n\t-moz-transition: background 500ms;\n\t-ms-transition: background 500ms;\n\t-o-transition: background 500ms;\n\ttransition: background 500ms;\n}\n\n.isolated-test-list dd,\n.isolated-test-list dt{\n\tpadding: 0px 10px;\n\tmargin: 0;\n\tbackground-color: #444;\n\tcolor: #f1f1f1;\n\tline-height: 30px;\n\tclear: both;\n\tborder-bottom: solid 1px #222;\n}\n\n.isolated-test-list dt.path{\n\tbackground: #222;\n}\n\n.isolated-test-list dd:hover{\n\tbackground-color: #666;\n}\n\n.isolated-test-list button{\n\tfloat: right;\n\ttop: 1px;\n\tposition: relative;\n}\n\n.isolated-test-list button,\n.isolated-test-list a{\n\tcursor: pointer;\n}\n.isolated-test-list button[disabled]{\n\topacity: .6;\n\tcursor: default;\n}\n.isolated-test-list dd.running button[disabled]{\n\tcursor: inherit;\n}\n\n.isolated-test-list button,\n.isolated-test-list a,\n.isolated-test-list dd a:visited{\n\tcolor: #f1f1f1;\n\tline-height: 26px;\n\n\ttext-decoration: none;\n}\n\nbutton#isolated-controls-run,\n.isolated-test-list dd button{\n\tborder: none;\n\tpadding: 0px 10px 0px 26px;\n\tline-height: 25px;\n\tbackground:\n\t\t#222\n\t\turl(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)\n\t\tno-repeat\n\t\t5px 5px\n\t\t;\n}\n\n.isolated-test-list dt h1{\n\tfont-size: 22px;\n}\n.isolated-test-list dt{\n\tpadding-left: 20px;\n}\n.isolated-test-list dt button,\n.isolated-test-list dt h1{\n\tdisplay: inline;\n\tline-height: 45px;\n}\n\n.isolated-test-list dd{\n\n\tborder-left: solid 10px #222;\n\n\t-webkit-transition: border-left-color 500ms;\n\t-moz-transition: border-left-color 500ms;\n\t-ms-transition: border-left-color 500ms;\n\t-o-transition: border-left-color 500ms;\n\ttransition: border-left-color 500ms;\n}\n\n.isolated-test-list dd.failed{\n\tborder-left-color: #b41b1b;\n}\n.isolated-test-list dd.failed.timeout{\n\tborder-left-color: #E88809;\n\tbackground: #7B664B;\n}\n\n.isolated-test-list dd.passed{\n\tborder-left-color: #1bb41b;\n}\n\n.isolated-test-list dd.loading{\n\tborder-left-color: orange;\n\tcursor: progress;\n\n\t-webkit-animation-name: loading;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: loading;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-list dd.running{\n\tborder-left-color: #1bb4af;\n\tcursor: progress;\n\n\t-webkit-animation-name: running;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: running;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-workarea{\n\twidth: 69%;\n\theight: 100%;\n\toverflow: auto;\n\tfloat: right;\n\tposition: relative;\n}\n\n.isolated-test-workarea iframe{\n\twidth: 100%;\n\tborder: 0;\n}\n.isolated-test-workarea iframe.running{\n\tcursor: wait;\n}\n\niframe#isolated-tests-iframe{\n\tmin-height: 90%;\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n}\n\n@keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n@-webkit-keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n.time-counter{color: #888;}\n\nbody.timeout, body.timeout #HTMLReporter{\n\tbackground: #fff0cc !important;\n}\n\n#HTMLReporter .summary .suite.skipped,\n\n#HTMLReporter .summary .suite.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n\n#HTMLReporter .summary .specSummary.highlighted{\n\t-webkit-animation-name: highlight;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: highlight;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n#HTMLReporter .summary .specSummary.skipped,\n#HTMLReporter .summary .specSummary.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n#HTMLReporter .skippedAlert.bar{\n\tbackground: rgba(232, 136, 9, 1);\n}\n#HTMLReporter .skippedAlert.bar:hover{\n\ttext-decoration: none;\n}\n\n#HTMLReporter .symbolSummary li.empty:before{\n\tcolor: blueviolet;\n\tcontent: \"\\02717\";\n}\n#HTMLReporter .symbolSummary li.skipped:before{\n\tcolor: #E88809;\n\tcontent: \"\\02717\";\n}\ndiv#isolatedTests div#HTMLReporter .symbolSummary li.failed{\n\tline-height: inherit;\n}\n#HTMLReporter .symbolSummary li.failed:before{\n\tcontent: \"\\02717\";\n}\n\n#HTMLReporter .symbolSummary li.passed:before{\n\tcontent: \"\\02713\";\n\n}\n\n#HTMLReporter .symbolSummary li{\n\theight: 14px;\n\twidth: 18px;\n\tfont-size: 20px !important;\n\tposition: relative;\n}\n\n#HTMLReporter .symbolSummary li a{\n\tposition: absolute;\n\twidth: 100%;\n\theight: 100%;\n\tdisplay: block;\n\ttop: 0;\n\tleft: 0;\n}\n\n#HTMLReporter .summary{\n\tpadding: 0;\n}\n\n#HTMLReporter .summary .suite.fileContainer{\n\tpadding: 0px 0px 8px 0px;\n\tmargin: 5px 0px 10px 0px;\n\tborder: solid 1px #bababa;\n\tborder-radius: 5px;\n\tbox-shadow: 2px 2px 5px #bababa;\n}\n\n#HTMLReporter .summary .suite.fileContainer >a.description{\n\tfont-size: 1.2em;\n\tline-height: 2.2em;\n\tdisplay: block;\n\tbackground: #bababa;\n\tmargin-bottom: 8px;\n\tpadding-left: 8px;\n}');
+('html, body, #isolatedTests{\n\twidth: 100%;\n\theight: 100%;\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\nbody.jasmine-alone-whole,\nbody.jasmine-alone-whole #isolatedTests{\n\toverflow: auto;\n}\n\n.isolated-test-list{\n\twidth: 30%;\n\tfloat: left;\n\theight: 100%;\n\toverflow: auto;\n\tbackground-color: #222;\n\tmargin: 0;\n\tpadding: 0;\n\tposition: relative;\n\tz-index: 2;\n}\n\n.isolated-test-list.passed{\n\tbox-shadow: 0px 0px 40px 5px #1bb41b\n}\n\n.isolated-test-list.failed{\n\tbox-shadow: 0px 0px 40px 5px #b41b1b\n}\n\n.isolated-test-list.timeout{\n\tbox-shadow: 0px 0px 40px 5px #E88809\n}\n\n.isolated-test-list dd{\n\tborder-top: solid 1px #777;\n\t-webkit-transition: background 500ms;\n\t-moz-transition: background 500ms;\n\t-ms-transition: background 500ms;\n\t-o-transition: background 500ms;\n\ttransition: background 500ms;\n}\n\n.isolated-test-list dd,\n.isolated-test-list dt{\n\tpadding: 0px 10px;\n\tmargin: 0;\n\tbackground-color: #444;\n\tcolor: #f1f1f1;\n\tline-height: 30px;\n\tclear: both;\n\tborder-bottom: solid 1px #222;\n}\n\n.isolated-test-list dt.path{\n\tbackground: #222;\n}\n\n.isolated-test-list dd:hover{\n\tbackground-color: #666;\n}\n\n.isolated-test-list button{\n\tfloat: right;\n\ttop: 1px;\n\tposition: relative;\n}\n\n.isolated-test-list button,\n.isolated-test-list a{\n\tcursor: pointer;\n}\n.isolated-test-list button[disabled]{\n\topacity: .6;\n\tcursor: default;\n}\n.isolated-test-list dd.running button[disabled]{\n\tcursor: inherit;\n}\n\n.isolated-test-list button,\n.isolated-test-list a,\n.isolated-test-list dd a:visited{\n\tcolor: #f1f1f1;\n\tline-height: 26px;\n\n\ttext-decoration: none;\n}\n\nbutton#isolated-controls-run,\n.isolated-test-list dd button{\n\tborder: none;\n\tpadding: 0px 10px 0px 26px;\n\tline-height: 25px;\n\tbackground:\n\t\t#222\n\t\turl(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUZFMDRCRjFEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUZFMDRCRjJEM0M2MTFFMzhBRDBCOEVDREY4NjQxRDMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBRkUwNEJFRkQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBRkUwNEJGMEQzQzYxMUUzOEFEMEI4RUNERjg2NDFEMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PvrXN1sAAABlSURBVHjaYlS+L8lACmBiIBFg0VAgXUqCBqDqHNZCPHqwOwmPHpx+wKUHn6ex6iEQSph6qBGsyGDK7/4JT7uJ1YCpGp8GrKpxasClGgiYhQp4kfknPh9j4mbCpRoIGGmeWgECDADlViNXk8co7wAAAABJRU5ErkJggg==)\n\t\tno-repeat\n\t\t5px 5px\n\t\t;\n}\n\n.isolated-test-list dt h1{\n\tfont-size: 22px;\n}\n.isolated-test-list dt{\n\tpadding-left: 20px;\n}\n.isolated-test-list dt button,\n.isolated-test-list dt h1{\n\tdisplay: inline;\n\tline-height: 45px;\n}\n\n.isolated-test-list dd{\n\n\tborder-left: solid 10px #222;\n\n\t-webkit-transition: border-left-color 500ms;\n\t-moz-transition: border-left-color 500ms;\n\t-ms-transition: border-left-color 500ms;\n\t-o-transition: border-left-color 500ms;\n\ttransition: border-left-color 500ms;\n}\n\n.isolated-test-list dd.failed{\n\tborder-left-color: #b41b1b;\n}\n.isolated-test-list dd.failed.timeout{\n\tborder-left-color: #E88809;\n\tbackground: #7B664B;\n}\n\n.isolated-test-list dd.passed{\n\tborder-left-color: #1bb41b;\n}\n\n.isolated-test-list dd.loading{\n\tborder-left-color: orange;\n\tcursor: progress;\n\n\t-webkit-animation-name: loading;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: loading;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-list dd.running{\n\tborder-left-color: #1bb4af;\n\tcursor: progress;\n\n\t-webkit-animation-name: running;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: running;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n.isolated-test-workarea{\n\twidth: 69%;\n\theight: 100%;\n\toverflow: auto;\n\tfloat: right;\n\tposition: relative;\n}\n\n.isolated-test-workarea iframe{\n\twidth: 100%;\n\tborder: 0;\n}\n.isolated-test-workarea iframe.running{\n\tcursor: wait;\n}\n\niframe#isolated-tests-iframe{\n\tmin-height: 90%;\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes running\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: #1bb4af;}\n\t75% {border-left-color: #1bb4af;}\n\t100% {border-left-color: #444444;}\n}\n\n/* Chrome, Safari, Opera */\n@-webkit-keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n\t/*25%   {border-left-color: #366968;}*/\n}\n\n/* Standard syntax */\n@keyframes loading\n{\n\t0%  {border-left-color: #444444;}\n\t25% {border-left-color: orange;}\n\t75% {border-left-color: orange;}\n\t100% {border-left-color: #444444;}\n}\n\n@keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n@-webkit-keyframes highlight\n{\n\t0%  {background: rgba(241, 218, 54, .5); color: initial;}\n\t50% {background: rgba(0, 0, 0, .5); color: #ffffff;}\n\t100%  {background: rgba(241, 218, 54, .5); color: initial;}\n}\n.time-counter{color: #888;}\n\nbody.timeout, body.timeout #HTMLReporter{\n\tbackground: #fff0cc !important;\n}\n\n#HTMLReporter .summary .suite.skipped,\n\n#HTMLReporter .summary .suite.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n\n#HTMLReporter .summary .specSummary.highlighted{\n\t-webkit-animation-name: highlight;\n\t-webkit-animation-iteration-count: infinite;\n\t-webkit-animation-duration: 1s;\n\tanimation-name: highlight;\n\tanimation-iteration-count: infinite;\n\tanimation-duration: 1s;\n}\n\n#HTMLReporter .summary .specSummary.skipped,\n#HTMLReporter .summary .specSummary.empty{\n\tbackground: rgba(232, 136, 9, .5);\n}\n#HTMLReporter .skippedAlert.bar{\n\tbackground: rgba(232, 136, 9, 1);\n}\n#HTMLReporter .skippedAlert.bar:hover{\n\ttext-decoration: none;\n}\n\n#HTMLReporter .symbolSummary li.empty:before{\n\tcolor: blueviolet;\n\tcontent: \"\\02717\";\n}\n#HTMLReporter .symbolSummary li.skipped:before{\n\tcolor: #E88809;\n\tcontent: \"\\02717\";\n}\ndiv#isolatedTests div#HTMLReporter .symbolSummary li.failed{\n\tline-height: inherit;\n}\n#HTMLReporter .symbolSummary li.failed:before{\n\tcontent: \"\\02717\";\n}\n\n#HTMLReporter .symbolSummary li.passed:before{\n\tcontent: \"\\02713\";\n\n}\n\n#HTMLReporter .symbolSummary li{\n\theight: 14px;\n\twidth: 18px;\n\tfont-size: 20px !important;\n\tposition: relative;\n}\n\n#HTMLReporter .symbolSummary li a{\n\tposition: absolute;\n\twidth: 100%;\n\theight: 100%;\n\tdisplay: block;\n\ttop: 0;\n\tleft: 0;\n}\n\n#HTMLReporter .summary{\n\tpadding: 0;\n}\n\n#HTMLReporter .summary .suite.fileContainer{\n\tpadding: 0px 0px 8px 0px;\n\tmargin: 5px 0px 10px 0px;\n\tborder: solid 1px #bababa;\n\tborder-radius: 5px;\n\tbox-shadow: 2px 2px 5px #bababa;\n}\n\n#HTMLReporter .summary .suite.fileContainer >a.description{\n\tfont-size: 1.2em;\n\tline-height: 2.2em;\n\tdisplay: block;\n\tbackground: #bababa;\n\tmargin-bottom: 8px;\n\tpadding-left: 8px;\n}\n\n@-moz-keyframes three-quarters-loader {\n  0% {\n    -moz-transform: rotate(0deg);\n    transform: rotate(0deg);\n  }\n  100% {\n    -moz-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n@-webkit-keyframes three-quarters-loader {\n  0% {\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg);\n  }\n  100% {\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n@keyframes three-quarters-loader {\n  0% {\n    -moz-transform: rotate(0deg);\n    -ms-transform: rotate(0deg);\n    -webkit-transform: rotate(0deg);\n    transform: rotate(0deg);\n  }\n  100% {\n    -moz-transform: rotate(360deg);\n    -ms-transform: rotate(360deg);\n    -webkit-transform: rotate(360deg);\n    transform: rotate(360deg);\n  }\n}\n/* :not(:required) hides this rule from IE9 and below */\n.JA-spinner-loader:not(:required) {\n  -moz-animation: three-quarters-loader 1250ms infinite linear;\n  -webkit-animation: three-quarters-loader 1250ms infinite linear;\n  animation: three-quarters-loader 1250ms infinite linear;\n  border: 8px solid #a6b779;\n  border-right-color: transparent;\n  border-radius: 50px;\n  box-sizing: border-box;\n  display: inline-block;\n  position: relative;\n  overflow: hidden;\n  text-indent: -9999px;\n  width: 100px;\n  height: 100px;\n\n  position: fixed;\n  top: 50%;\n  left: 50%;\n  margin-left: -50px;\n  margin-top: -50px;\n}\n\nbody.jasmine-alone-loading {\n\tbackground: #444;\n}');
     //Register in the values from the outer closure for common dependencies
     //as local almond modules
     define('jasmine', function () {

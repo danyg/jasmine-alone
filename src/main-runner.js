@@ -208,6 +208,11 @@ define([
 	};
 
 	MainRunner.prototype.__checkOnFinishSuite = function() {
+		if(!this._route.isAutoStart()) {
+			this._onFinish();
+			return;
+		}
+
 		if(this._ix >= tests.getLength()) {
 			if(this._runningTests.length === 0) {
 				this._onFinish();
@@ -227,14 +232,9 @@ define([
 				testObj.markAsLoading();
 				this._markTime('loadingStart', testObj.getSpecFile());
 
-				var left = window.screenX + this.workarea.offsetLeft;
-				var top = window.screenY + this.workarea.offsetTop;
-				var W = this.workarea.clientWidth;
-				var H = this.workarea.clientHeight;
-
 				this._defaultReporter._ExecutingSpecFile(testObj.getSpecFile());
 
-				testObj.open(left, top, W, H);
+				testObj.open();
 			}
 		}
 	};

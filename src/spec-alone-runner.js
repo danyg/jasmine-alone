@@ -6,9 +6,11 @@
  */
 
 define([
-	'./JARunner'
+	'./JARunner',
+	'./utils'
 ], function(
-	JARunner
+	JARunner,
+	utils
 ) {
 	'use strict';
 
@@ -40,6 +42,9 @@ define([
 
 	SpecAloneRunner.prototype._onSpecLoaded = function() {
 		this._markTime('loadingStop', this._route.getCurrentSpecFile());
+
+		this._removeLoading();
+
 		if(!!this._parentRunner){
 			this._parentRunner.onChildStart(this._route.getCurrentSpecFile());
 		}
@@ -66,10 +71,24 @@ define([
 	// PRIVATE METHODS
 	// *************************************************************************
 
+	SpecAloneRunner.prototype._renderLoading = function() {
+		this._loadingC = document.createElement('div');
+		utils.addClass(this._loadingC, 'JA-spinner-loader');
+		document.body.appendChild(this._loadingC);
+	};
+
+	SpecAloneRunner.prototype._removeLoading = function() {
+		this._loadingC.parentNode.removeChild(this._loadingC);
+		utils.removeClass(document.body, 'jasmine-alone-loading');
+		utils.addClass(document.body, 'jasmine-alone-whole');
+	};
 	/**
 	 * @Overwrite
 	 */
 	SpecAloneRunner.prototype._prepare = function() {
+		utils.addClass(document.body, 'jasmine-alone-loading');
+		this._renderLoading();
+
 		this._parentRunner = null;
 		if (!!window.opener) {
 			this._parentRunner = window.opener.isolatedRunner.mainRunner;

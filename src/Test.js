@@ -178,28 +178,26 @@ define([
 	// Self Running Methods
 	//**************************************************************************
 
-	Test.prototype.open = function(left, top, W, H) {
+	Test.prototype.open = function(retry) {
 		this.markAsLoading();
-		if(undefined !== H) {
-			this._winProps = {
-				left: left,
-				top: top,
-				W: W,
-				H: H
-			};
-		}
 
 		if(!this._watchdogTimer) {
 			this._setWatchdog();
 		}
 		this._setDumbPreventerWatchdog();
 
-		utils.log('Loading: ' + this.getSpecFile() + (!left ? '[RETRY]' : ''));
+		utils.log('Loading: ' + this.getSpecFile() + (!!retry ? '[RETRY]' : ''));
+
+		var workarea = document.getElementById('isolated-test-workarea');
+		var left = window.screenX + workarea.offsetLeft;
+		var top = window.screenY + workarea.offsetTop;
+		var W = workarea.clientWidth;
+		var H = workarea.clientHeight;
 
 		this._testWindow = window.open(
 			this.getSRC(),
 			'test_win_' + this._winNum,
-			'width=' + this._winProps.W + ', height=' + this._winProps.H + ', left=' + this._winProps.left + ', top=' + this._winProps.top + ', scrollbars=yes, resizable=yes'
+			'width=' + W + ', height=' + H + ', left=' + left + ', top=' + top + ', scrollbars=yes, resizable=yes'
 		);
 	};
 
@@ -243,7 +241,7 @@ define([
 		this._clearDumbPreventerWatchDog();
 
 		this._watchdogDumbPreventerTimer = setTimeout(
-			this.open.bind(this),
+			this.open.bind(this, true),
 			window.TEST_LOAD_TIMEOUT
 		);
 	};
