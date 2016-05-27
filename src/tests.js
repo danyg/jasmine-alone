@@ -49,7 +49,7 @@ define(['./route', './Test'], function(route, Test){
 		addIframeToDOM: function(testObj){
 			var parent = this._getParentDOMElement();
 			this._log('Loading: ' + testObj.getSpecFile());
-	 		parent.appendChild(testObj.getElement());
+			parent.appendChild(testObj.getElement());
 		},
 
 		// IFRAMES INDEXES METHODS

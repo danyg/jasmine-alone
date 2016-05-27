@@ -27,7 +27,7 @@ define([
 		DEFAULT_TEST_LOAD_TIMEOUT = 3000
 	;
 
-	function defineIsolatedRunner(){ // because lint
+	function defineIsolatedRunner() { // because lint
 		var isolatedRunner = {
 			ISOLATED: false,
 
@@ -54,6 +54,7 @@ define([
 				this._childSpecsObjectsBySpecFile = {};
 				this._idsForSpecNSuites = ['?'];
 				this._timeForSpecFile = {};
+				this._failedSpecsFiles = 100000;
 			},
 
 			init: function(){
@@ -119,8 +120,8 @@ define([
 					specFile = test.getSpecFile();
 
 					if(!!reporter){
-						this._printReporter(reporter, specFile);
 						this._checkIsPassed(reporter, specFile);
+						this._printReporter(reporter, specFile);
 					} else {
 						this._failed = true;
 						test.onFinish(false);
@@ -221,8 +222,6 @@ define([
 			//**********************************************************************
 
 			onChildStart: function(specFile) {
-				this._defaultReporter._ExecutingSpecFile(specFile);
-
 				this.setCurrentTestObj(tests.getTestBySpec(specFile));
 				var testObj = this.getCurrentTestObj();
 				this._clearDumbPreventerWatchDog();
@@ -247,8 +246,13 @@ define([
 					// we won't need to call the parentWindow
 				} else {
 					// executed on CHILD context with PARENNT MEMORY ACCESS!!!
+
+
 					this._clearWatchDog();
 					this._setDumbPreventerWatchdog();
+
+					this._hackReportToMarkItAsFailed(reporter, childRunner, specFile);
+
 					var test = tests.getTestBySpec(specFile);
 					test.setReporter(reporter);
 					test.setChildRunner(childRunner);
@@ -445,19 +449,26 @@ define([
 				if(timeout){
 					log('TIMEOUT for: ' + this.getCurrentTestObj().getSpecFile());
 					this.getCurrentTestObj().markAsTimeout();
+					this._reportSpecFileAsTimeout(this.getCurrentTestObj().getSpecFile(), this._testWindow.jasmine.getEnv().currentRunner());
 				}
 
-				if(this._finished === false){
+				if(this._finished === false) {
 					this._ix++;
 					if(this._ix >= tests.getLength()){
 						this._onFinish();
 					}else{
-						this.setCurrentTestObj( tests.getIndex(this._ix) );
-						this.load();
+						var testObj = tests.getIndex(this._ix);
+						this._runTest(testObj);
 					}
 				} else {
 					this._onFinish();
 				}
+			},
+
+			_runTest: function(testObj) {
+				this.setCurrentTestObj( testObj );
+				this._defaultReporter._ExecutingSpecFile(testObj.getSpecFile());
+				this.load();
 			},
 
 			load: function(){
@@ -642,10 +653,12 @@ define([
 				var passedState = false,
 					results = reporter.results(),
 					result,
-					id
+					id,
+					rCount = 0
 				;
 
 				for (id in results) {
+					rCount++;
 					result = results[id];
 					passedState = result.result === 'passed';
 					if (!passedState) {
@@ -657,10 +670,91 @@ define([
 				test.onFinish(passedState);
 			},
 
+			_hackReportToMarkItAsFailed: function(reporter, runner, specFile) {
+				try {
+					var results = reporter.results(),
+						rCount = 0,
+						id
+					;
+
+					for (id in results) {
+						rCount++;
+					}
+
+					if(rCount === 0) {
+						this._reportSpecFileAsFailed(specFile, runner);
+					}
+				} catch(e) {
+					logError(e);
+				}
+			},
+
+			_reportSpecFileAsTimeout: function(specFile, runner) {
+				this._reportSpecFileAs('should not Timeout', specFile, runner);
+			},
+
+			_reportSpecFileAsFailed: function(specFile, runner) {
+				this._reportSpecFileAs('should run successfully', specFile, runner);
+			},
+
+			_reportSpecFileAs: function(label, specFile, runner) {
+
+				if(runner === undefined) {
+					runner = jasmine.getEnv().currentRunner();
+				}
+
+				var suite = this._getSpecFileErrorSuite();
+
+				var spec = new jasmine.Spec(
+					runner.env,
+					suite,
+					specFile + ' ' + label
+				);
+
+				spec.id = this._failedSpecsFiles++;
+				spec.getSpecFile = suite.getSpecFile;
+
+				suite.add(spec);
+				runner.addSuite(suite);
+
+				if(!!this._defaultReporter.reportRunnerStarting){
+					this._defaultReporter.reportRunnerStarting(runner);
+				}
+				if(!!this._defaultReporter.reportSpecStarting){
+					this._defaultReporter.reportSpecStarting(spec);
+				}
+
+				spec.expect(false).toBe(true, 'the spec file ' + specFile + ' ' + label);
+
+				this._defaultReporter.reportSpecResults(spec);
+
+				this._defaultReporter.reportSuiteResults(suite);
+
+				if(!!this._defaultReporter.reportRunnerResults) {
+					this._defaultReporter.reportRunnerResults(runner);
+				}
+			},
+
+			_getSpecFileErrorSuite: function() {
+				if(!this._specFileErrorSuite) {
+					this._specFileErrorSuite = new jasmine.Suite(
+						jasmine.getEnv(),
+						'All spec files should run successfully',
+						function(){}
+					);
+
+					this._specFileErrorSuite.getSpecFile = function() {
+						return 'Main Process';
+					};
+				}
+				return this._specFileErrorSuite;
+			},
+
 			_addChildSpecs: function(specFile, runner){
 				this._childSpecsObjectsBySpecFile[specFile] = runner.specs();
 				this._processSpecsByFile(this._childSpecsObjectsBySpecFile[specFile], specFile, []);
 			},
+
 
 			getSpecs: function(){
 				var specs = [], specFile, i;
@@ -693,21 +787,29 @@ define([
 				var f = function(){
 					return specFile;
 				};
-				spec.getSpecFile = f;
+				if(!spec.getSpecFile) {
+					spec.getSpecFile = f;
+				}
 				this._setSuiteRelWithSpecFile(spec.suite, specFile);
-				spec.suite.getSpecFile = f;
+				if(!spec.suite.getSpecFile) {
+					spec.suite.getSpecFile = f;
+				}
 			},
 
 			_setSuiteRelWithSpecFile: function(suite, specFile) {
 				var f = function(){
 					return specFile;
 				};
-				suite.getSpecFile = f;
+				if(!suite.getSpecFile) {
+					suite.getSpecFile = f;
+				}
 				suite.id = this._getSuiteId(suite, specFile);
 
-				while (suite.parentSuite !== null) {
+				while (!!suite.parentSuite) {
 					suite = suite.parentSuite;
-					suite.getSpecFile = f;
+					if(!suite.getSpecFile) {
+						suite.getSpecFile = f;
+					}
 					suite.id = this._getSuiteId(suite, specFile);
 				}
 
@@ -732,10 +834,10 @@ define([
 
 			_getUID: function(type, specFile, id){
 				var internalID = type + '_' + specFile + '_' + id;
-				// var id = this._idsForSpecNSuites.indexOf(internalID);
-				// if(id === -1){
-				// 	id = this._idsForSpecNSuites.push(internalID) - 1;
-				// }
+				//	var id = this._idsForSpecNSuites.indexOf(internalID);
+				//	if(id === -1){
+				//		id = this._idsForSpecNSuites.push(internalID) - 1;
+				//	}
 				return internalID.replace(/[\s\W]/g, '_').toLowerCase();
 			},
 
@@ -750,14 +852,32 @@ define([
 	}
 
 	function colorize(txt, baseColor){
+		var passedC = '\u001b[1;32m',
+			skipedC = '\u001b[1;95m',
+			failedC = '\u001b[1;31m'
+		;
 		if(baseColor === undefined) {
 			baseColor = '\u001b[0m';
 		}
 
-		return txt.replace(/PASSED/g, '\u001b[1;32mPASSED' + baseColor)
-				.replace(/FAILED/g, '\u001b[1;31mFAILED' + baseColor)
-				.replace(/SKIPPED/g, '\u001b[1;33mSKIPPED' + baseColor)
-		;
+		txt = txt.replace(
+			new RegExp(escapeRegExp(printReporter.PASSMARK), 'g'),
+			passedC + '\u2714' + baseColor
+		);
+		txt = txt.replace(
+			new RegExp(escapeRegExp(printReporter.FAILMARK), 'g'),
+			failedC + '\u0078' + baseColor
+		);
+		txt = txt.replace(
+			new RegExp(escapeRegExp(printReporter.SKIPMARK), 'g'),
+			skipedC + '\u25CF' + baseColor
+		);
+
+		return txt;
+	}
+
+	function escapeRegExp(str) {
+		return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
 	}
 
 	function logError(msg){

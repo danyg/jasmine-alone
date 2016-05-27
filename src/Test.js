@@ -40,8 +40,7 @@ define(['./route'], function(route){
 	};
 
 	Test.prototype.run = function(){
-		this._handler.getRunner().setCurrentTestObj(this);
-		this._handler.getRunner().load();
+		this._handler.getRunner()._runTest(this);
 	};
 
 	Test.prototype.onRun = function(){

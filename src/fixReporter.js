@@ -31,12 +31,17 @@ define([], function(){
 			queue = []
 		;
 
+		reporter._debug = [];
+
 		function proxyMethod(method){
 			try{
 
 				if(!!reporter[method]){
 					oMethods[method] = reporter[method];
 					reporter[method] = function(){
+
+						reporter._debug.push([method, arguments]);
+
 						var specFile = window.isolatedRunner.getRunningSpec();
 						queueBySpecFile[specFile].push([method, arguments]);
 					};
@@ -125,16 +130,23 @@ define([], function(){
 
 			var method,args,a;
 
+window.console.group('===[ onFinishSuite ]=========================');
+window.console.trace();
+
 			for(var i = 0; i < queue.length; i++){
 				try{
 					a = queue[i];
 					method = a[0];
 					args = a[1];
+
+window.console.log(method, args);
+
 					if(!!oMethods[ method ]){
 						oMethods[ method ].apply(reporter, args);
 					}
 				}catch(e){}
 			}
+window.console.groupEnd();
 
 			if(!!oMethods.reportRunnerResults){
 				oMethods.reportRunnerResults.call(reporter, parentRunner);

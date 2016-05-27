@@ -42,42 +42,60 @@ define([], function(){
 		}
 		return txt;
 	}
+	printReporter.PASSMARK = '[ \u2714 ]';
+	printReporter.SKIPMARK = '[ \u25CF ]';
+	printReporter.FAILMARK = '[ \u0078 ]';
 
 	function printSuite(suite, results, tabs) {
-		var tabChar = '    ';
+		var tabChar = '    ',
+			mark,
+			rmark,
+			i,
+			m,
+			txt,
+			skipped = false
+		;
+
 		if (undefined === tabs) {
 			tabs = tabChar;
 		}
 
-		var result = results[suite.id], m;
+		var result = results[suite.id];
 		if (!!result) {
+			skipped = 'spec' === suite.type && result.result === 'passed' && result.messages.length === 0;
 
-			var txt = suite.name + ': ';
-			var i;
+			mark = skipped ? printReporter.SKIPMARK :
+				result.result === 'passed' ?
+					printReporter.PASSMARK :
+					printReporter.FAILMARK
+			;
+			txt = mark + ' ' + suite.name;
 
 			if (result.result !== 'passed') {
-				txt += result.result.toUpperCase();
-
 				for (i in result.messages) {
 					if (result.messages.hasOwnProperty(i)) {
 						m = result.messages[i];
-						if(m.actual === undefined && m.matcherName  === undefined && m.expected === undefined){
-							txt += '\n' + tabs + tabChar + m.message;
-						}else{
-							txt += '\n' + tabs + tabChar + m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
-						}
+						rmark = (
+							m.passed_ ?
+								printReporter.PASSMARK :
+								m.skipped ?
+									printReporter.SKIPMARK :
+									printReporter.FAILMARK
+						);
 
-						txt += ' ('+ (m.passed_ ? 'PASSED': m.skipped ? 'SKIPPED' : 'FAILED')+')';
+						if(!m.passed_) {
+							txt += '\n' + tabs + rmark + ' ' + m.message;
+						} else {
+							txt += '\n' + tabs + rmark + ' ';
+							if(m.actual === undefined && m.matcherName  === undefined && m.expected === undefined) {
+								txt += m.message;
+							} else {
+								txt += m.type + ' ' + m.actual + ' ' + m.matcherName + ' ' + m.expected;
+							}
+						}
 					}
 				}
 			}
-
-			if(result.messages.length === 0) {
-				txt += 'SKIPPED';
-			} else {
-				txt += 'PASSED';
-			}
-
 
 			for (i in suite.children) {
 				if (suite.children.hasOwnProperty(i)) {
@@ -87,7 +105,7 @@ define([], function(){
 
 			return txt;
 		} else {
-			return suite.name + ': SKIPPED';
+			return printReporter.SKIPMARK + ' ' + suite.name;
 
 		}
 	}

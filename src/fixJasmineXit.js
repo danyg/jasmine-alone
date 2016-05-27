@@ -43,7 +43,7 @@ define([], function(){
 	};
 
 /*
-	jasmine.Env.prototype.describe = function(description, specDefinitions){
+	jasmine.Env.prototype.describe = function(description, specDefinitions) {
 		if(!!this.currentSuite && this.currentSuite.skipped){
 			return this.xdescribe(description, specDefinitions);
 		} else {
@@ -51,35 +51,35 @@ define([], function(){
 		}
 	};
 
-	jasmine.Env.prototype.xdescribe = function(description, specDefinitions){
-	  var suite = new jasmine.Suite(this, description, specDefinitions, this.currentSuite);
-	  suite.skipped = true;
+	jasmine.Env.prototype.xdescribe = function(description, specDefinitions) {
+		var suite = new jasmine.Suite(this, description, specDefinitions, this.currentSuite);
+		suite.skipped = true;
 
-	  var parentSuite = this.currentSuite;
-	  if (parentSuite) {
-	    parentSuite.add(suite);
-	  } else {
-	    this.currentRunner_.add(suite);
-	  }
+		var parentSuite = this.currentSuite;
+		if (parentSuite) {
+			parentSuite.add(suite);
+		} else {
+			this.currentRunner_.add(suite);
+		}
 
-	  this.currentSuite = suite;
+		this.currentSuite = suite;
 
-	  var declarationError = null;
-	  try {
-	    specDefinitions.call(suite);
-	  } catch(e) {
-	    declarationError = e;
-	  }
+		var declarationError = null;
+		try {
+			specDefinitions.call(suite);
+		} catch(e) {
+			declarationError = e;
+		}
 
-	  if (declarationError) {
-	    this.it("encountered a declaration exception", function() {
-	      throw declarationError;
-	    });
-	  }
+		if (declarationError) {
+			this.it("encountered a declaration exception", function() {
+			throw declarationError;
+			});
+		}
 
-	  this.currentSuite = parentSuite;
+		this.currentSuite = parentSuite;
 
-	  return suite;
+		return suite;
 	};
 */
 
