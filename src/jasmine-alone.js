@@ -224,6 +224,8 @@ define([
 			onChildStart: function(specFile) {
 				this.setCurrentTestObj(tests.getTestBySpec(specFile));
 				var testObj = this.getCurrentTestObj();
+
+				this._defaultReporter._ExecutingSpecFile(testObj.getSpecFile());
 				this._clearDumbPreventerWatchDog();
 				testObj.onRun();
 				this._markTime('loadingStop', specFile);
