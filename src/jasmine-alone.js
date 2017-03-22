@@ -141,7 +141,7 @@ define([
 					currentSpecFile = route.getCurrentSpecFile();
 				}
 
-				throw new Error('Error Loading Dependencies in [' + currentSpecFile + '], dependencie not found: [' + failedId + ']');
+				throw new Error('Error Loading Dependencies in [' + currentSpecFile + '], dependency error: [' + failedId + ']' + (!!err.message ? ' due ' + err.message : ''));
 			},
 
 			/**
