@@ -529,6 +529,7 @@ define([
 
 					window.reporter = this._defaultReporter;
 				}
+				window.reporter.finished = false;
 
 				if(window.reporter instanceof jasmine.HtmlReporter){
 					this._reporterClass = 'HtmlReporter';
